@@ -38,6 +38,11 @@ $helptext="
 /* ************
 ** ChangeLog **
 ***************
+  1.3 (2006/01/02/lion):
+  		Support for c1541 (VICE) to list d64 files (default from now)
+		(Illegal track&sector errors won't stop with c1541 because
+		it returns OK exit code as of version 4.00.)
+
   1.2 (2005/12/27/lion):
   		PHP 5.x warnings of uninitialized variables fixed
 		Code formatting changed from K&R to new
@@ -64,8 +69,9 @@ $helptext="
 
 # Default values
 
-# Set this to empty string if you don't have d64list
-$D64LIST = "d64list";
+# Set this to empty string if you don't have d64list,c1541 or compatible
+#$D64LIST = "d64list {0}";
+$D64LIST = "c1541 {0} -list";
 
 # Cbmconvert's location
 $CBMCONVERT="cbmconvert";
@@ -77,8 +83,8 @@ $ARRPREFIX="ai";
 $ERRORHALT="ignore";
 
 # Creating extraction dirs below this one (see ramdisk hint in the readme)
-$tmp_dir = '/tmp/'.getenv('USER').".ai64";
-#$tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
+#$tmp_dir = '/tmp/'.getenv('USER').".ai64";
+$tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
 
 # ------- end of config ------
 # --------------------------------------------------------------
@@ -166,13 +172,13 @@ ob_start();
 ob_end_clean();
 
 $missing_tools = "";
-if ($have_unrar != 0) { $missing_tools .= "unrar, "; }
+if ($have_unrar != 0 && $have_unrar != 7) { $missing_tools .= "unrar, "; }
 if ($have_unzip != 0) { $missing_tools .= "unzip, "; }
 if ($have_gzip != 0) { $missing_tools .= "gzip, "; }
 if ($have_tar != 0) { $missing_tools .= "tar, "; }
 if ($have_zipcode != 0 && $have_zipcode != 1) { $missing_tools .= "zip2disk, "; }
 if ($have_cbmconvert != 0 && $have_cbmconvert != 1 ) { $missing_tools .= "cbmconvert, "; }
-if ($have_d64list != 0 && $have_d64list != 1 ) { $missing_tools .= "d64list, "; }
+if ($have_d64list != 0 && $have_d64list != 1 ) { $missing_tools .= "d64list ($D64LIST), "; }
 
 if ($missing_tools != "")
 {
@@ -694,7 +700,7 @@ function process_file_d64($dir,$file,$dest_dir)
 	{
 		# List d64, split block numbers, buffer output into a variable
 		ob_start();
-		system("$D64LIST $shellfile", $ret);
+		system(str_replace('{0}', $shellfile, $D64LIST), $ret);
 		$contents = ob_get_contents();
 		ob_end_clean();
 
