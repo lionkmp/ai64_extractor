@@ -1,7 +1,9 @@
 #!/usr/bin/php
-<?
-# ai64 V1.2 - C64 archive files batch extractor
-# (c) 2004 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
+<?php
+$version = "1.3";
+
+# ai64 - C64 archive files batch extractor
+# (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
 
 /*
     This program is free software; you can redistribute it and/or modify
@@ -20,24 +22,34 @@
 */
 # --------------------------------------------------------------
 
-$helptext="
-  ai64 V1.2 - C64 archive files batch extractor
-  (c) 2004 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
-  ai64 comes with ABSOLUTELY NO WARRANTY; for details read COPYING.txt
-  This is free software, and you are welcome to redistribute it
-  under conditions specified by the GPL Version 2. See COPYING.txt.
+$helptext="  ai64 V".$version." - C64 archive files batch extractor
+  (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@netngine.hu)
 
-  ai64 allows you to comvert complete directory structures containing
-  c64 wares into IDE64 compatible copy of the whole strucure. e.g.
-  try running it on a complete copy of Arnold Game Archive, before 
-  burning a CD for IDE64 usage. Read the README file for more info.
+  ai64 allows you to convert complete directory structures containing
+  c64 wares into IDE64 compatible copy of the whole strucure, before 
+  burning a CD for c64/IDE64 usage. Read the README file for more info.
  
-  Usage: ai64 original_dir destination_dir [skipto_filename]
+  Usage: ai64 [options] original_dir destination_dir
+  
+    -s path/name    Skip to this file before staring processing
+                    (Use this to continue after something went wrong)
+    -x ,            Use ',' as file extension separator (default is '.')
 
+  Current configuration (hardcoded in this script so far):
+    D64LIST={d64list}
+    CBMCONVERT={cbmconvert}
+    ARRPREFIX={arrprefix}
+    ERRORHALT={errorhalt}
+    tmp_dir={tmpdir}
 ";
 /* ************
 ** ChangeLog **
 ***************
+  x.x (2010/03/07/lion):
+		Support -x for setting comma as seaprator (-x ,)
+		Change to GetOpt library
+      Move skip file from argument 3 to "-s path/name"
+      
   1.3 (2006/01/02/lion):
   		Support for c1541 (VICE) to list d64 files (default from now)
 		(Illegal track&sector errors won't stop with c1541 because
@@ -76,7 +88,7 @@ $D64LIST = "c1541 {0} -list";
 # Cbmconvert's location
 $CBMCONVERT="cbmconvert";
 
-# Direcory prefix for 100,200,300 subdirs when arranging to subfolders
+# Direcory prefix for ai100,ai200,ai300 subdirs when arranging to subfolders
 $ARRPREFIX="ai";
 
 # Stop on archiver errors? Values: "halt", "ask" or "ignore".
@@ -90,20 +102,42 @@ $tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
 # --------------------------------------------------------------
 # Check argument list
 
-if (!empty($argv[1]) && ($argv[1] == "-h" || $argv[1] == "-help" || $argv[1] == "--help" || $argv[1] == "-?"))
-{
-	echo $helptext;
+$arm_file = 0;
+$armed = 1;
+$args = 0;
+$extsep = ".";
+
+$opts = getopt("hs:x:");
+
+# Optional arguments
+if(isset($opts['h'])) {
+	$search = array("{d64list}", "{cbmconvert}", "{arrprefix}", "{errorhalt}", "{tmpdir}");
+	$replace = array($D64LIST, $CBMCONVERT, $ARRPREFIX, $ERRORHALT, $tmp_dir);
+	echo str_replace($search, $replace, $helptext);
 	exit(0);
 }
 
-if ($argc < 3)
+// Skip to file? (incl. path)
+if(isset($opts['s'])) {
+	$arm_file = $opts['s'];
+	$armed = 0;
+	$args += 2; // Eat -s and value
+}
+
+// Extension separator
+if(isset($opts['x'])) {
+	$extsep = $opts['x'];
+	$args += 2; // Eat -x and value
+}
+
+// Last two args are source and destination 
+if ($argc - $args != 3)
 {
 	echo "Usage: ai64 source_dir destination_dir [skipto_filename] (-h for help)\n\n";
 	exit(1);
 }
-
-$source_dir = $argv[1];
-$dest_dir = $argv[2];
+$source_dir = $argv[$argc-2];
+$dest_dir = $argv[$argc-1];
 
 # Check source dir
 if (!is_dir($source_dir))
@@ -131,17 +165,6 @@ if (!is_dir($dest_dir))
 		exit(1);
 	}
 } 
-
-# Argv 3 can be a filename, skipping will be done till that is reached
-if (!empty($argv[3]) && $argv[3] != '')
-{
-	$armed = 0;
-	$arm_file = $argv[3];
-}
-else
-{
-	$armed = 1;
-}
 
 # --------------------------------------------------------------
 #echo "Src: $source_dir\nDst: $dest_dir\n";
@@ -709,8 +732,8 @@ function process_file_d64($dir,$file,$dest_dir)
 			echo "ia64: listing $shellfile returned with error\n";
 			handle_error();
 		}
-		# Analize output, calculate entries, total blocks, free blocks
 
+		# Analize output, calculate entries, total blocks, free blocks
 		foreach (split("\n",$contents) as $line)
 		{
 			# Get the number from the line
@@ -1169,6 +1192,8 @@ function save_file($dir,$file,$dest_dir)
 
 function normalize_name($file, $index = 0)
 {
+	global $extsep;
+	
 	# Lowercase, trim it
 	$file = trim(strtolower($file));
 
@@ -1208,12 +1233,12 @@ function normalize_name($file, $index = 0)
 	# No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)
 	{
-		$file = substr($nameonly, 0, 16) .".". $lext;
+		$file = substr($nameonly, 0, 16) . $extsep . $lext;
 		return($file);
 	}
 
 	# Cut the name, make space for extension and index) (15 => place for "-")
-	$file = substr($nameonly, 0, 15 - strlen($index)) ."-$index.$lext";
+	$file = substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
 	return($file);
 }
 

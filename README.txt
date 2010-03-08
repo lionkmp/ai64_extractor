@@ -154,7 +154,7 @@ dmesg | grep -i ramdisk
 
 The second one also displays the size, what you can configure with the 
 "ramdisk_size=64000" (64MB) kernel parameter at boot time (bootloader config).
-I use the follwing small shell script as root, before converting:
+I use the following small shell script as root, before converting:
 
 mke2fs -m 0 /dev/ram0
 mount /dev/ram0 /mnt/rd
