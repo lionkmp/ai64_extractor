@@ -165,7 +165,7 @@ chown lion2:lion2 /mnt/rd
 There is no option in the program to log the error messages, but it is very simple
 using standard Unix tool, "tee".
 
-ai64 orig_dir dest_dir 2>&1 | tee errorlog.txt
+ai64 orig_dir dest_dir 2>&1 | tee -a errorlog.txt
 
 CONTACT
 

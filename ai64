@@ -2,10 +2,10 @@
 <?php
 $version = "1.3";
 
-# ai64 - C64 archive files batch extractor
-# (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
-
 /*
+    ai64 - C64 archive files batch extractor
+    (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
+
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -20,7 +20,6 @@ $version = "1.3";
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
-# --------------------------------------------------------------
 
 $helptext="  ai64 V".$version." - C64 archive files batch extractor
   (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@netngine.hu)
@@ -34,6 +33,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -s path/name    Skip to this file before staring processing
                     (Use this to continue after something went wrong)
     -x ,            Use ',' as file extension separator (default is '.')
+    -v              Verbose, list succesfully processed files
 
   Current configuration (hardcoded in this script so far):
     D64LIST={d64list}
@@ -46,9 +46,11 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 ** ChangeLog **
 ***************
   x.x (2010/03/07/lion):
+		Change to GetOpt library, argument format change
 		Support -x for setting comma as seaprator (-x ,)
-		Change to GetOpt library
+		Support -v for verbose.
       Move skip file from argument 3 to "-s path/name"
+      Common error message format.
       
   1.3 (2006/01/02/lion):
   		Support for c1541 (VICE) to list d64 files (default from now)
@@ -77,39 +79,38 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 		PRG, D64, T64, ZIP, P00 support
 		Max 100 file rearranging
 */
-# --------------------------------------------------------------
 
-# Default values
+// Default values
 
-# Set this to empty string if you don't have d64list,c1541 or compatible
-#$D64LIST = "d64list {0}";
+// Set this to empty string if you don't have d64list,c1541 or compatible
+//$D64LIST = "d64list {0}";
 $D64LIST = "c1541 {0} -list";
 
-# Cbmconvert's location
+// Cbmconvert's location
 $CBMCONVERT="cbmconvert";
 
-# Direcory prefix for ai100,ai200,ai300 subdirs when arranging to subfolders
+// Direcory prefix for ai100,ai200,ai300 subdirs when arranging to subfolders
 $ARRPREFIX="ai";
 
-# Stop on archiver errors? Values: "halt", "ask" or "ignore".
+// Stop on archiver errors? Values: "halt", "ask" or "ignore".
 $ERRORHALT="ignore";
 
-# Creating extraction dirs below this one (see ramdisk hint in the readme)
-#$tmp_dir = '/tmp/'.getenv('USER').".ai64";
+// Creating extraction dirs below this one (see ramdisk hint in the readme)
+//$tmp_dir = '/tmp/'.getenv('USER').".ai64";
 $tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
 
-# ------- end of config ------
-# --------------------------------------------------------------
-# Check argument list
+// ------- end of config ------
 
+// Check argument list
 $arm_file = 0;
 $armed = 1;
 $args = 0;
+$verbose = false;
 $extsep = ".";
 
-$opts = getopt("hs:x:");
+$opts = getopt("vhs:x:");
 
-# Optional arguments
+// Help?
 if(isset($opts['h'])) {
 	$search = array("{d64list}", "{cbmconvert}", "{arrprefix}", "{errorhalt}", "{tmpdir}");
 	$replace = array($D64LIST, $CBMCONVERT, $ARRPREFIX, $ERRORHALT, $tmp_dir);
@@ -124,10 +125,16 @@ if(isset($opts['s'])) {
 	$args += 2; // Eat -s and value
 }
 
-// Extension separator
+// Extension separator?
 if(isset($opts['x'])) {
 	$extsep = $opts['x'];
 	$args += 2; // Eat -x and value
+}
+
+// Verbose?
+if(isset($opts['v'])) {
+	$verbose = true;
+	$args++; // Eat -v
 }
 
 // Last two args are source and destination 
@@ -139,14 +146,14 @@ if ($argc - $args != 3)
 $source_dir = $argv[$argc-2];
 $dest_dir = $argv[$argc-1];
 
-# Check source dir
+// Check source dir
 if (!is_dir($source_dir))
 {
 	echo "ai64: source directory does not exist: $source_dir.\n";
 	exit(1);
 }
 
-# Check destiation dir and create if needed
+// Check destiation dir and create if needed
 if (!is_dir($dest_dir))
 {
 	echo "ai64: destination directory does not exist: $dest_dir.\n";
@@ -155,7 +162,7 @@ if (!is_dir($dest_dir))
 	{
 		if(!mkdir($dest_dir)) 
 		{
-			echo("Creating destination dir failed.\n");
+			echo("ai64: Creating destination dir failed.\n");
 			exit(1);
 		}
 	}
@@ -166,15 +173,24 @@ if (!is_dir($dest_dir))
 	}
 } 
 
-# --------------------------------------------------------------
-#echo "Src: $source_dir\nDst: $dest_dir\n";
+// Check skip file
+if($armed != 1)
+{
+	if(!is_file($arm_file)) 
+	{
+		echo("ai64: Skip file is not found: $arm_file.\n");
+		exit(1);
+	}
+}
+
+// Stores all zipcode names to avoid processing them 4 times (1!x 2!x etc)
+unset($processed_zipcodes);
+
+/*** check external tools availabilty ***/
 
 $tmpdir_count = 0;
 
-# Stores all zipcode names to avoid processing them 4 times (1!x 2!x etc)
-unset($processed_zipcodes);
-
-# Check if all external tools are available
+// Check if all external tools are available
 
 ob_start();
 	system("unrar 2>/dev/null",$have_unrar);
@@ -189,7 +205,7 @@ ob_start();
 	}
 	else
 	{
-		# d64list is optional
+		// d64list is optional
 		$have_d64list = 0;
 	}
 ob_end_clean();
@@ -209,8 +225,9 @@ if ($missing_tools != "")
 	exit(1);
 }
 
-# --------------------------------------------------------------
-# Check if tmp_dir exists and try to make it
+/** Temp dir check ***/
+
+// Check if tmp_dir exists and try to make it
 if (!is_dir($tmp_dir))
 {
 	if (!mkdir($tmp_dir))
@@ -224,7 +241,8 @@ if (($dh = opendir($tmp_dir)) === false)
 	echo "ai64: Cannot open temporary dir: $tmp_dir\n";
 	exit(1);
 }
-# Temp dir must be empty or clean up now
+
+// Temp dir must be empty or clean up now
 $found_files="";
 while ($file = readdir($dh))
 {
@@ -252,8 +270,8 @@ if ($found_files != "")
 }
 
 
-# --------------------------------------------------------------
-# Start the madness
+/*** Start processing ***/
+
 echo("Starting the conversion.\nIf you see error messages from the external tools, you may want to examine those files.\n");
 process_dir($source_dir,$dest_dir);
 
@@ -263,11 +281,9 @@ arrange_files($dest_dir);
 exit(0);
 
 
-# --------------------------------------------------------------
-# PROCESS ONE DIR
+/*** PROCESS ONE DIR ***/
 
-# Loop on the dir, process files and call recursive for subdirs
-
+// Loop on the dir, process files and call recursive for subdirs
 function process_dir($dir,$dest_dir,$count_only = 0) {
 
 	global $armed,$arm_file;
@@ -275,15 +291,15 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 	$dh = opendir($dir);
 	if ($dh === false)
 	{
-		echo("Cannot open dir for processing: $dir\n");
+		echo("ai64: Cannot open dir for processing: $dir\n");
 		exit(1);
 	}
 	unset($dirs_here);
 	unset($files_here);
 
-	# Loop on the current dir
+	// Loop on the current dir
 
-	# Collect files and dirs into two arrays
+	// Collect files and dirs into two arrays
 
 	while (($file = readdir($dh)) !== false) 
 	{
@@ -293,25 +309,22 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 
 			if (is_dir($fullname))
 			{
-				# Subdirectory, store for later processing
+				// Subdirectory, store for later processing
 				$dirs_here[] = $file;
-				#echo "Dir: $fullname\n";
-				
 			}
 			elseif (is_file($fullname))
 			{
 				$files_here[] = $file;
-				#echo "File: $fullname\n";	
 			}
 			else
 			{
-				echo "No file, no dir? $fullname\n";
+				echo "ai64: No file, no dir? $fullname\n";
 			}
 		}
 	}
 	closedir($dh);
 
-	# If counting only, return the current level
+	// If counting only, return the current level
 	if ($count_only == 1) 
 	{
 		if(!empty($files_here))
@@ -324,14 +337,11 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 		}
 	}
 
-	# Process all files here
+	// Process all files here
 	if (!empty($files_here) && count($files_here) > 0) 
 	{
-		#echo "Count:".count($files_here)."\n";
 		foreach ($files_here as $file) 
 		{
-			#echo "process_file($dir,$file,$dest_dir)\n";
-
 			if ($armed == 1) 
 			{
 				process_file($dir,$file,$dest_dir);
@@ -344,18 +354,11 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 		}
 	}
 
-	# Process all subdirs here
+	// Process all subdirs here
 	if (!empty($dirs_here) && count($dirs_here) > 0)
 	{
-		#echo "Have dirs in: $dir\n";
 		foreach ($dirs_here as $newdir) 
 		{
-			#if ($newdir == 'b') 
-			#{
-			#	echo "NEWDIR: a\n";
-			#	exit(1);
-			#}
-			#echo "E.g.: $newdir\n";
 			if (!is_dir("$dest_dir/$newdir")) 
 			{
 				if (!mkdir("$dest_dir/$newdir")) 
@@ -367,166 +370,158 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 			process_dir("$dir/$newdir","$dest_dir/$newdir");
 		}
 	}
-	else
-	{
-		#echo "No dirs in $dir\n";
-	}
 }
 
-# --------------------------------------------------------------
-# PROCESS ONE FILE
+/*** PROCESS ONE FILE ***/
 
-# Detect type and call related function
-
+// Detect type and call related function
 function process_file($dir,$file,$dest_dir)
 {
-	# Detect filetype for calling the related function
+	global $verbose;
 
-	# Split at dot for extensions
+	if($verbose)
+	{
+		echo "ai64: Processing ".$dir."/".$file."\n";
+	}	
+
+	// Split at dot for extensions
 	$nameparts = split('\.',$file);
 
-	# Zipcode (requires special handling)
+	// Zipcode (requires special handling)
 	if (preg_match('/^[1234]!(.*)$/',$file,$matches)) 
 	{
-		# Seems to be a zipcode
+		// Seems to be a zipcode
 		$zipcodename = $matches[1];
 	}
 	else
 	{
-		# Not zipcode (no 1! 2! 3! or 4! at filename start)
+		// Not zipcode (no 1! 2! 3! or 4! at filename start)
 		$zipcodename = "";
 	}
 		
-	# Process files (first special ones, then swicth-case by extension)
-
+	// Process files (first special ones, then swicth-case by extension)
 	if ($zipcodename != "" &&
-		# Do we have all 4 zipcode parts?
+		// Do we have all 4 zipcode parts?
 		is_file("$dir/1!$zipcodename") &&
 		is_file("$dir/2!$zipcodename") &&
 		is_file("$dir/3!$zipcodename") &&
 		is_file("$dir/4!$zipcodename"))
 	{
-		# Yes
+		// Yes
 		process_file_zipcode($dir,$file,$dest_dir);
 
 	}
 	elseif (substr($file,0,1) == ".")
 	{
-
-		# Dotfile, ignore dotfiles (boring message files of FTP sites)
-		
+		// Dotfile, ignore dotfiles (boring message files of FTP sites)
 	}
 	elseif (count($nameparts) == 1)
 	{
-		
-		# Filename cosinsts 1 part, just save it (cannot detect type)
+		// Filename cosinsts 1 part, just save it (cannot detect type)
 		save_file($dir,$file,$dest_dir);
-		
 	}
 	else
 	{
-		
-		# File consist of some dot separated parts, take the last as extension
-
+		// File consist of some dot separated parts, take the last as extension
 		$lext = strtolower($nameparts[count($nameparts)-1]);
 
 		switch ($lext)
 		{
 
-		# IGNORE THESE FILES
+		// IGNORE THESE FILES
 
 		case 'txt':
-			# Text file
-			#save_file($dir,$file,$dest_dir);
+			// Text file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'diz':
-			# Text file
-			#save_file($dir,$file,$dest_dir);
+			// Text file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'me':
-			# Text file
-			#save_file($dir,$file,$dest_dir);
+			// Text file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'nfo':
-			# Text file
-			#save_file($dir,$file,$dest_dir);
+			// Text file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'com':
-			# Windows program file
-			#save_file($dir,$file,$dest_dir);
+			// Windows program file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'exe':
-			# Windows program file
-			#save_file($dir,$file,$dest_dir);
+			// Windows program file
+			//save_file($dir,$file,$dest_dir);
 			break;
 
 		case 'del':
-			# DEL separator extraced from D64 files
-			#save_file($dir,$file,$dest_dir);
+			// DEL separator extraced from D64 files
+			//save_file($dir,$file,$dest_dir);
 			break;
 
-		# PROCESS THESE FILES
+		// PROCESS THESE FILES
 
 		case 'zip':
-			# Zip compressed
+			// Zip compressed
 			process_file_zip($dir,$file,$dest_dir);
 			break;
 
 		case 'rar':
-			# Rar compressed
+			// Rar compressed
 			process_file_rar($dir,$file,$dest_dir);
 			break;
 
 		case 'gz':
-			# Gzip compressed
+			// Gzip compressed
 			process_file_gz($dir,$file,$dest_dir);
 			break;
 
 		case 'tar':
-			# Tar archive
+			// Tar archive
 			process_file_tar($dir,$file,$dest_dir);
 			break;
 
 		case 'tgz':
-			# Gzip compressed Tar archive
+			// Gzip compressed Tar archive
 			process_file_tar($dir,$file,$dest_dir,"gzip");
 			break;
 
 		case 'd64':
-			# Disk image
+			// Disk image
 			process_file_d64($dir,$file,$dest_dir);
 			break;
 
 		case 't64':
-			# Disk image
+			// Tape image
 			process_file_t64($dir,$file,$dest_dir);
 			break;
 
 		case 'p00':
-			# PC64 emu file image
+			// PC64 emu file image
 			process_file_p00($dir,$file,$dest_dir);
 			break;
 
 		case 'lnx':
-			# Lynx file
+			// Lynx file
 			process_file_lnx($dir,$file,$dest_dir);
 			break;
 
 		case 'prg':
-			# C64 program
+			// C64 program
 			save_file($dir,$file,$dest_dir);
 			break;
 
 
-		# KEEP UNKNOWN FILES
+		// KEEP UNKNOWN FILES
 
 		default:
-			# Unknown file type
+			// Unknown file type
 			save_file($dir,$file,$dest_dir);
 			break;
 		}
@@ -534,8 +529,7 @@ function process_file($dir,$file,$dest_dir)
 
 }
 
-# --------------------------------------------------------------
-# FILE FORMATS
+/*** FILE FORMATS ***/
 
 /*
 	All these functions process one single file format.
@@ -556,7 +550,7 @@ function process_file($dir,$file,$dest_dir)
 	clear that before returning.
 */
 
-# ZIP
+// ZIP
 
 function process_file_zip($dir,$file,$dest_dir)
 {
@@ -564,27 +558,27 @@ function process_file_zip($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64zip");
 
-	# Extract the files
+	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
 
 	system("unzip -qq -o -L -d $workdir $shellfile",$ret);
 
 	if ($ret != 0)
 	{
-		echo "ia64: unzipping $shellfile to $workdir failed\n";
+		echo "ai64: EXTERNAL ERROR: unzipping $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
 	if ($ret == 0)
 	{
-		# Recall processing them 
+		// Recall processing them 
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# RAR
+// RAR
 
 function process_file_rar($dir,$file,$dest_dir)
 {
@@ -592,27 +586,27 @@ function process_file_rar($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64rar");
 
-	# Extract the files
+	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
 
 	system("unrar x -inul $shellfile $workdir/",$ret);
 
 	if ($ret != 0)
 	{
-		echo "ia64: unrar $shellfile to $workdir failed\n";
+		echo "ia64: EXTERNAL ERROR: unrar $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
 	if ($ret == 0)
 	{
-		# Recall processing them 
+		// Recall processing them 
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# GZ
+// GZ
 
 function process_file_gz($dir,$file,$dest_dir)
 {
@@ -620,38 +614,38 @@ function process_file_gz($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64gz");
 
-	# Copy the file to workdir
+	// Copy the file to workdir
 	$shellfile = escape_filename("$dir/$file");
 	system("cp $shellfile $workdir", $ret);
 
 	if ($ret != 0)
 	{
-		echo "ia64: Copying $shellfile to $workdir failed\n";
+		echo "ia64: EXTERNAL ERROR: Copying $shellfile to $workdir failed\n";
 		handle_error();
 	}
 	else
 	{
-		# Extract the file (if copy was ok)
+		// Extract the file (if copy was ok)
 		$shellfile = escape_filename("$workdir/$file");
 		system("gzip -d $shellfile",$ret);
 
 		if ($ret != 0)
 		{
-			echo "ia64: gzip -d $shellfile failed\n";
+			echo "ia64: EXTERNAL ERROR: gzip -d $shellfile failed\n";
 			handle_error();
 		}
 	}
 
 	if ($ret == 0)
 	{
-		# Recall processing them 
+		// Recall processing them 
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# TAR
+// TAR
 
 function process_file_tar($dir,$file,$dest_dir,$compress="")
 {
@@ -659,7 +653,7 @@ function process_file_tar($dir,$file,$dest_dir,$compress="")
 
 	$workdir = make_workdir("ai64tar");
 
-	# Extract the files
+	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
 
 	if ($compress == "gzip")
@@ -674,20 +668,20 @@ function process_file_tar($dir,$file,$dest_dir,$compress="")
 
 	if ($ret != 0)
 	{
-		echo "ia64: tar extracting $shellfile to $workdir failed\n";
+		echo "ia64: EXTERNAL ERROR tar extracting $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
 	if ($ret == 0)
 	{
-		# Recall processing them 
+		// Recall processing them 
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# D64
+// D64
 
 function process_file_d64($dir,$file,$dest_dir)
 {
@@ -695,7 +689,7 @@ function process_file_d64($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64d64");
 
-	# Variables for analizing D64 contents
+	// Variables for analizing D64 contents
 	$dont_validate = 0;
 	$totalblocks = 0;
 	$freeblocks = -1;
@@ -704,24 +698,24 @@ function process_file_d64($dir,$file,$dest_dir)
 	$firstline = 1;
 	$hiscores = 0;
 
-	# Extract the files
+	// Extract the files
 	$old_cwd = getcwd();
 
 	if (substr($dir,0,1) != "/")
 	{ 
-		# Relative path, add old cwd
+		// Relative path, add old cwd
 		$shellfile = escape_filename("$old_cwd/$dir/$file");
 	}
 	else
 	{
-		# Absolute path in $dir, keep it
+		// Absolute path in $dir, keep it
 		$shellfile = escape_filename("$dir/$file");
 	}
 
-	# If d64list is available, use the "nice way": count free and used blocks and compare
+	// If d64list is available, use the "nice way": count free and used blocks and compare
 	if ($D64LIST != "")
 	{
-		# List d64, split block numbers, buffer output into a variable
+		// List d64, split block numbers, buffer output into a variable
 		ob_start();
 		system(str_replace('{0}', $shellfile, $D64LIST), $ret);
 		$contents = ob_get_contents();
@@ -729,23 +723,23 @@ function process_file_d64($dir,$file,$dest_dir)
 
 		if($ret != 0)
 		{
-			echo "ia64: listing $shellfile returned with error\n";
+			echo "ia64: EXTERNAL ERROR: listing $shellfile returned with error\n";
 			handle_error();
 		}
 
-		# Analize output, calculate entries, total blocks, free blocks
+		// Analize output, calculate entries, total blocks, free blocks
 		foreach (split("\n",$contents) as $line)
 		{
-			# Get the number from the line
+			// Get the number from the line
 			if (preg_match('/^([0-9]+)/', $line, $matches))
 			{
 				$totalblocks += $matches[1];
-				$freeblocks = $matches[1]; # keep the last one
+				$freeblocks = $matches[1]; // keep the last one
 
-				# Count lines, ignore separators 
-				if (!preg_match('/^0 /',$line) &&		# Zero bytes file
-					!preg_match('/del<*$/i',$line) &&	# Del file
-					$firstline != 1)			# Disk header
+				// Count lines, ignore separators 
+				if (!preg_match('/^0 /',$line) &&		// Zero bytes file
+					!preg_match('/del<*$/i',$line) &&	// Del file
+					$firstline != 1)			// Disk header
 				{					
 					$numitems++;
 					$lastignored=0;
@@ -756,7 +750,7 @@ function process_file_d64($dir,$file,$dest_dir)
 				}
 			}
 
-			# Any "Don't validate" warnings? Oh, those unwritten laws :-) 
+			// Any "Don't validate" warnings? Oh, those unwritten laws :-) 
 			if (preg_match('/validate/i',$line) ||
 				preg_match('/change dir/i',$line) ||
 				preg_match('/change bam/i',$line)) 
@@ -764,89 +758,91 @@ function process_file_d64($dir,$file,$dest_dir)
 				$dont_validate = 1;
 			}
 
-			# Any Hi-Score file on it?
+			// Any Hi-Score file on it?
 			if (!empty($matches[1]) && $matches[1] > 0 && $matches[1] < 5 && hiscore_name($line)) 
 			{
 				$hiscores = 1;
 			}
-			$firstline = 0; # No more disk headers
+			$firstline = 0; // No more disk headers
 		}
-		$numitems -= 1-$lastignored; # ignore header & freeblocks line
+		$numitems -= 1-$lastignored; // ignore header & freeblocks line
 		if ($hiscores == 1 && $numitems == 2) 
 		{ 
-			# Ignore hiscores file
+			// Ignore hiscores file
 			$numitems--;
 		}
-		$totalblocks -= $freeblocks; # substract last addition
+		$totalblocks -= $freeblocks; // substract last addition
 
-		# If don't validate notes found, ignore the analizis result
+		// If don't validate notes found, ignore the analizis result
 		if ($dont_validate == 1)
 		{
 			$numitems = 0;
 		}
 
-		#echo "$file: Total: $totalblocks Free: $freeblocks Entries: $numitems\n";
+		//echo "$file: Total: $totalblocks Free: $freeblocks Entries: $numitems\n";
 	}
 
-	# if d64list not available, or the d64 was nice extractable, extract it
+	// if d64list not available, or the d64 was nice extractable, extract it
 	if ($D64LIST == "" || ($D64LIST != "" && $numitems == 1 && $totalblocks+$freeblocks == 664))
 	{
-		# Extract the d64
+		// Extract the d64
 		chdir($workdir);
 		system($CBMCONVERT." -v0 -N -d $shellfile",$ret);
 		chdir($old_cwd);
 
 		if ($ret != 0)
 		{
-			echo "ia64: extracting $shellfile to $workdir failed\n";
+			echo "ia64: EXTERNAL ERROR extracting $shellfile to $workdir failed\n";
 			handle_error();
 		}
 
-		# COUNT(!!!) the created files/dirs
+		// COUNT(!!!) the created files/dirs
 		$filenum = process_dir($workdir,$dest_dir,1);
 	}
 
-	# Amount of extracted files?
-	# First is the nice way: d64list available & there was 1 file on & the BAM was ok.
-	# Second is the ugly way depending on the extracted files only.
+	// Amount of extracted files?
+	// First is the nice way: d64list available & there was 1 file on & the BAM was ok.
+	// Second is the ugly way depending on the extracted files only.
 	if (($D64LIST != "" && ($numitems != 1 || $totalblocks+$freeblocks != 664)) || 
 		($D64LIST == "" && ($filenum > 1 || $ret != 0)))
 	{
-		# If more than 1 file, keep the d64 file
+		// If more than 1 file, keep the d64 file
 		save_file($dir,$file,$dest_dir);
 	}
 	else
 	{
-		# Process the extracted files
+		// Process the extracted files
 
-		# Last hack: if found a hiscores file, try to delete it
+		// Last hack: if found a hiscores file, try to delete it
 		if ($hiscores == 1)
 		{
 			$score_dh = opendir($workdir);
 			if ($score_dh === false)
 			{
-				echo("Cannot open dir for deleting high-scores file: $workdir\n");
+				echo("ai64: Cannot open dir for deleting high-scores file: $workdir\n");
 				exit(1);
 			}
-			# Loop on all files in this dir
+			
+			// Loop on all files in this dir
 			while(($fname = readdir($score_dh)) !== false)
 			{
-				# If matching hiscore filename patterns
+				// If matching hiscore filename patterns
 				if (hiscore_name($fname)) 
 				{
-					# Get filesize
+					// Get filesize
 					$filedata = stat("$workdir/$fname");
 					if ($filedata === false)
 					{
-						echo("Cannot stat high-scores file: $workdir/$fname\n");
+						echo("ai64: Cannot stat high-scores file: $workdir/$fname\n");
 						exit(1);
 					}
-					# If smaller than 5 blocks, delete it
+					
+					// If smaller than 5 blocks, delete it
 					if ($filedata[7] < 1024)
 					{
 						if (!unlink("$workdir/$fname"))
 						{
-							echo("Cannot unlink high-scores file: $workdir/$fname\n");
+							echo("ai64: Cannot unlink high-scores file: $workdir/$fname\n");
 							exit(1);
 						}
 					}
@@ -855,14 +851,14 @@ function process_file_d64($dir,$file,$dest_dir)
 			closedir($score_dh);
 		}
 
-		# Process the remaining file(s)
+		// Process the remaining file(s)
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# T64
+// T64
 
 function process_file_t64($dir,$file,$dest_dir)
 {
@@ -870,17 +866,17 @@ function process_file_t64($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64t64");
 
-	# Extract the files
+	// Extract the files
 	$old_cwd = getcwd();
 
 	if (substr($dir,0,1) != "/")
 	{
-		# Relative path, add old cwd
+		// Relative path, add old cwd
 		$shellfile = escape_filename("$old_cwd/$dir/$file");
 	}
 	else
 	{
-		# Absolute path in $dir, keep it
+		// Absolute path in $dir, keep it
 		$shellfile = escape_filename("$dir/$file");
 	}
 
@@ -890,40 +886,40 @@ function process_file_t64($dir,$file,$dest_dir)
 
 	if ($ret != 0)
 	{
-		echo "ia64: extracting $shellfile to $workdir failed\n";
+		echo "ai64: EXTERNAL ERROR: extracting $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
-	# Count the created files/dirs
+	// Count the created files/dirs
 	$filenum = process_dir($workdir,$dest_dir,1);
 
-	# Amount of extracted files?
+	// Amount of extracted files?
 	if ($filenum > 2 || $ret != 0)
 	{
-		# If more than 2 files, keep is as archive
+		// If more than 2 files, keep is as archive
 		save_file($dir,$file,$dest_dir);
 
 	}
 	elseif ($filenum == 1 && is_file("$workdir/file.prg"))
 	{
 
-		# One file, and that is the "unnamed" file.prg
+		// One file, and that is the "unnamed" file.prg
 
-		# Rename it to the t64's name plus .prg, and process the dir
+		// Rename it to the t64's name plus .prg, and process the dir
 		rename("$workdir/file.prg","$workdir/".str_replace('t64','prg',$file));
 		process_dir($workdir,$dest_dir);
 
 	}
 	else
 	{
-		# Less or equal to 2, process them
+		// Less or equal to 2, process them
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# P00
+// P00
 
 function process_file_p00($dir,$file,$dest_dir)
 {
@@ -931,17 +927,17 @@ function process_file_p00($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64p00");
 
-	# Extract the files
+	// Extract the files
 	$old_cwd = getcwd();
 
 	if (substr($dir,0,1) != "/")
 	{
-		# Relative path, add old cwd
+		// Relative path, add old cwd
 		$shellfile = escape_filename("$old_cwd/$dir/$file");
 	}
 	else
 	{
-		# Absolute path in $dir, keep it
+		// Absolute path in $dir, keep it
 		$shellfile = escape_filename("$dir/$file");
 	}
 
@@ -951,29 +947,29 @@ function process_file_p00($dir,$file,$dest_dir)
 
 	if ($ret != 0)
 	{
-		echo "ia64: extracting $shellfile to $workdir failed\n";
+		echo "ia64: EXTERNAL ERROR: extracting $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
-	# Count the created files/dirs
+	// Count the created files/dirs
 	$filenum = process_dir($workdir,$dest_dir,1);
 
-	# Amount of extracted files?
+	// Amount of extracted files?
 	if ($filenum > 2 || $ret != 0)
 	{
-		# If more than 2 files, keep is as archive
+		// If more than 2 files, keep is as archive
 		save_file($dir,$file,$dest_dir);
 	}
 	else
 	{
-		# Less or equal to 2, process them
+		// Less or equal to 2, process them
 		process_dir($workdir,$dest_dir);
 	}
 
 	system("rm -rf $workdir");
 }
 
-# LNX
+// LNX
 
 function process_file_lnx($dir,$file,$dest_dir)
 {
@@ -981,21 +977,21 @@ function process_file_lnx($dir,$file,$dest_dir)
 
 	$workdir = make_workdir("ai64lnx");
 
-	# Convert lnx to d64
+	// Convert lnx to d64
 	$old_cwd = getcwd();
 
 	if (substr($dir,0,1) != "/")
 	{
-		# Relative path, add old cwd
+		// Relative path, add old cwd
 		$shellfile = escape_filename("$old_cwd/$dir/$file");
 	}
 	else
 	{
-		# Absolute path in $dir, keep it
+		// Absolute path in $dir, keep it
 		$shellfile = escape_filename("$dir/$file");
 	}
 
-	# Create a d64 with the same name like the lnx was
+	// Create a d64 with the same name like the lnx was
 	$d64name = escape_filename(preg_replace('/lnx$/i','d64',$file));
 
 	chdir($workdir);
@@ -1004,51 +1000,52 @@ function process_file_lnx($dir,$file,$dest_dir)
 
 	if ($ret != 0)
 	{
-		echo "ia64: lnx to d64 conversion of $shellfile to $workdir failed\n";
+		echo "ia64: EXTERNAL ERROR: lnx to d64 conversion of $shellfile to $workdir failed\n";
 		handle_error();
 	}
 
-	# Re-process from d64 now
+	// Re-process from d64 now
 	process_dir($workdir,$dest_dir);
 
 	system("rm -rf $workdir");
 }
 
-# ZIPCODE
+// ZIPCODE
 
 function process_file_zipcode($dir,$file,$dest_dir)
 {
 	global $CBMCONVERT, $D64LIST;
-	global $processed_zipcodes; # Array for previous ones to avoid processing 4 times
+	global $processed_zipcodes; // Array for previous ones to avoid processing 4 times
 
-	# Convert zipcode to d64
+	// Convert zipcode to d64
 	$old_cwd = getcwd();
 
-	# Cut the zipcode file's name without 1! 2!..
+	// Cut the zipcode file's name without 1! 2!..
 	$zipname = substr($file,2,strlen($file));
 	
-	# Check if already processed with another prefix	
+	// Check if already processed with another prefix	
 	if (!empty($processed_zipcodes["$dir/$zipname"]) && $processed_zipcodes["$dir/$zipname"] == 1)
 	{
 		return;
 	}
-	# Store that this one was processed
+	
+	// Store that this one was processed
 	$processed_zipcodes["$dir/$zipname"] = 1;
 
 	$workdir = make_workdir("ai64zipcode");
 
 	if (substr($dir,0,1) != "/")
 	{
-		# Relative path, add old cwd
+		// Relative path, add old cwd
 		$filesdir = "$old_cwd/$dir";
 	}
 	else
 	{
-		# Absolute path in $dir, keep it
+		// Absolute path in $dir, keep it
 		$filesdir = $dir;
 	}
 
-	# z64 is standard extension, remove it, other extensions are untouched
+	// z64 is standard extension, remove it, other extensions are untouched
 	if (preg_match('/z64$/i',$zipname))
 	{
 		$d64name = escape_filename(preg_replace('/z64$/','d64',"$workdir/$zipname"));
@@ -1065,37 +1062,35 @@ function process_file_zipcode($dir,$file,$dest_dir)
 
 	if ($ret != 0)
 	{
-		echo "ia64: zipcode to d64 conversion of $old_cwd/$zipname to $workdir/$d64name failed.\n";
+		echo "ia64: EXTERNAL ERROR: zipcode to d64 conversion of $old_cwd/$zipname to $workdir/$d64name failed.\n";
 		handle_error();
 	}
 
-	# Re-process from d64 now
+	// Re-process from d64 now
 	process_dir($workdir,$dest_dir);
 
 	system("rm -rf $workdir");
 }
-# --------------------------------------------------------------
-# HELPER functions for filetype handlers
+
+/*** HELPER functions for filetype handlers ***/
 
 function escape_filename($name)
 {
-	#return preg_replace('/([ \(\)\'\"\&])/','\\\$1',$name);
 	return escapeshellarg($name);
 }
 
-# Create just another dir in the temporary dir for one single operation
-
+// Create just another dir in the temporary dir for one single operation
 function make_workdir($dirname)
 {
 	global $tmp_dir, $tmpdir_count;
 
 	$workdir = "$tmp_dir/$dirname-$tmpdir_count";
 
-	# This counter makes the tmp dir unique
-	# thus same type of nested archives are handled ok
+	// This counter makes the tmp dir unique
+	// thus same type of nested archives are handled ok
 	$tmpdir_count++;
 
-	# Create temporary dir
+	// Create temporary dir
 	if (!is_dir($workdir))
 	{
 		if (!mkdir($workdir,0755))
@@ -1110,15 +1105,14 @@ function make_workdir($dirname)
 	return($workdir);
 }
 
-# On fatal errors: quit, ask or continue
-
+// On fatal errors: quit, ask or continue
 function handle_error()
 {
 	global $ERRORHALT;
 
 	switch($ERRORHALT)
 	{
-		# Interactive mode?
+		// Interactive mode?
 		case "ask":
 			$reply = ask_user("Continue? (y/n)");
 
@@ -1128,16 +1122,15 @@ function handle_error()
 			}
 			break;
 
-		# Always halt
+		// Always halt
 		case "halt":
 			exit(1);
 			break;
 	}
-	# Otherwise just continue
+	// Otherwise just continue
 }
 
-# hiscore_name: returns true if the filename looks like a hiscore file
-
+// hiscore_name: returns true if the filename looks like a hiscore file
 function hiscore_name($name)
 {
 	return (preg_match('/hi/i',$name) ||
@@ -1147,8 +1140,7 @@ function hiscore_name($name)
 			preg_match('/score/i',$name));
 }
 
-# Ask a question from the user and return y or n. 
-
+// Ask a question from the user and return y or n. 
 function ask_user($question)
 {
 	do
@@ -1162,19 +1154,18 @@ function ask_user($question)
 	return $reply;
 }
 
-# --------------------------------------------------------------
-# SAVING DESTINATION FILES
+/*** SAVING DESTINATION FILES ***/
 
-# SAVE FILE
-
+// SAVE FILE
 function save_file($dir,$file,$dest_dir)
 {
+	global $verbose;
+
 	$normalname = normalize_name($file);
 
 	if (is_file("$dest_dir/$normalname"))
 	{
-		# Destination file already exists, make DOS ~1 indexing :-)
-
+		// Destination file already exists, make DOS ~1 indexing :-)
 		for ($i = 1; is_file("$dest_dir/$normalname"); $i++)
 		{
 			$normalname = normalize_name($file,$i);
@@ -1182,31 +1173,33 @@ function save_file($dir,$file,$dest_dir)
 
 	}
 
-	#echo "SAVING: ($dir/$file, $dest_dir/$normalname)\n";
+	if($verbose)
+	{
+		echo "ai64: Saving: $dir/$file to $dest_dir/$normalname\n";
+	}
 	copy("$dir/$file", "$dest_dir/$normalname");
 	
 
 }
 
-# CONVERT ONE FILENAME TO IDE64 COMPATIBLE
-
+// CONVERT ONE FILENAME TO IDE64 COMPATIBLE
 function normalize_name($file, $index = 0)
 {
 	global $extsep;
 	
-	# Lowercase, trim it
+	// Lowercase, trim it
 	$file = trim(strtolower($file));
 
-	# Reduce multiple spaces to a single space
+	// Reduce multiple spaces to a single space
 	$file = preg_replace('/  */',' ',$file);
 
-	# Remove invalid characters * : = / and ? (According to Soci.)
+	// Remove invalid characters * : = / and ? (According to Soci.)
 	$file = preg_replace('/[\*:=\?]/','.',$file);
 
-	# Get last extension ("." and "," are both separators)
+	// Get last extension ("." and "," are both separators)
 	$nameparts = split('[\.,]',$file);
 
-	# If no extension, use .prg
+	// If no extension, use .prg
 	if (count($nameparts) == 1)
 	{
 		$lext = "prg";
@@ -1218,36 +1211,34 @@ function normalize_name($file, $index = 0)
 		$nameonly = substr($file,0,strlen($file)-strlen($lext)-1);
 	}
 
-	# If the extension is invalid (according to Soci) add .prg!
+	// If the extension is invalid (according to Soci) add .prg!
 	if ($lext == "s" || $lext == "p" || $lext == "d" || $lext == "u" ||
 		$lext == "l" || $lext == "b" || $lext == "j" || $lext == "a" ||
 		$lext == "dir" || $lext == "lnk" || $lext == "rel" || $lext == "del")
 	{
-		$nameonly .= ".$lext"; # Add back to filename, may be useful
+		$nameonly .= ".$lext"; // Add back to filename, may be useful
 		$lext = "prg";
 	}
 
-	# Truncate long extension
+	// Truncate long extension
 	$lext = substr($lext,0,3);
 
-	# No indexing requested, just cut the name (make place for extenstion)
+	// No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)
 	{
 		$file = substr($nameonly, 0, 16) . $extsep . $lext;
 		return($file);
 	}
 
-	# Cut the name, make space for extension and index) (15 => place for "-")
+	// Cut the name, make space for extension and index) (15 => place for "-")
 	$file = substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
 	return($file);
 }
 
-# --------------------------------------------------------------
-# ARRANGE FILES TO LIMIT FILES/DIR
+/*** ARRANGE FILES TO LIMIT FILES/DIR ***/
 
-# Create subdirectories for the files if there are more than 100
-# files in a dir (IDE64 MAN reads only 127!)
-
+// Create subdirectories for the files if there are more than 100
+// files in a dir (IDE64 MAN reads only 127!)
 function arrange_files($dir)
 {
 	global $ARRPREFIX;
@@ -1255,16 +1246,14 @@ function arrange_files($dir)
 	$dh = opendir($dir);
 	if ($dh === false)
 	{
-		echo("Cannot open dir for arranging files: $dir\n");
+		echo("ai64: Cannot open dir for arranging files: $dir\n");
 		exit(1);
 	}
 	unset($dirs_here);
 	unset($files_here);
 
-	# Loop on the current dir
-
-	# Collect files and dirs into two arrays
-
+	// Loop on the current dir
+	// Collect files and dirs into two arrays
 	while (($file = readdir($dh)) !== false)
 	{
 		if ($file != '.' && $file != '..')
@@ -1273,31 +1262,27 @@ function arrange_files($dir)
 
 			if (is_dir($fullname))
 			{
-				# Subdirectory, store for later processing
+				// Subdirectory, store for later processing
 				$dirs_here[] = $file;
-				#echo "Dir: $fullname\n";
 			}
 			elseif (is_file($fullname))
 			{
 				$files_here[] = $file;
-				#echo "File: $fullname\n";	
 			}
 			else
 			{
-				echo "No file, no dir? $fullname\n";
+				echo "ai64: No file, no dir? $fullname\n";
 			}
 		}
 	}
 	closedir($dh);
 
 
-	# How many files and dirs we have here?
-
+	// How many files and dirs we have here?
 	$filecount = ( empty($files_here) ? 0 : count($files_here) );
 	$dircount = ( empty($dirs_here) ? 0 : count($dirs_here) );
 
-	# If here are some files and the total of files+dirs > 100, do the rearrange
-
+	// If here are some files and the total of files+dirs > 100, do the rearrange
 	if ($filecount > 0 && ($filecount + $dircount) > 100)
 	{
 		sort($files_here);
@@ -1306,20 +1291,20 @@ function arrange_files($dir)
 		$lastdir = -1;
 		$dirpart = "";
 
-		# Process all files here
+		// Process all files here
 		for ($i = 0; $i < $filesnum; $i++)
 		{
-			# What is the /100 part of this (to see if we must open new dir for this file)
+			// What is the /100 part of this (to see if we must open new dir for this file)
 			$currdir = (int) ($i/100) * 100 + 100;
 
-			# Create the dir if not yet done
+			// Create the dir if not yet done
 			if ($currdir != $lastdir)
 			{
-				# Take first part of the current file's name for new dir's name
+				// Take first part of the current file's name for new dir's name
 				$dirpart = preg_replace('/^([a-z0-9]*).*$/i', '$1', $files_here[$i]);
 				$dirpart = "-".substr($dirpart, 0, 16 - strlen($ARRPREFIX) - strlen($currdir));
 				
-				# Create new dir e.g. "ai500-bubble". 
+				// Create new dir e.g. "ai500-bubble". 
 				if (!mkdir("$dir/$ARRPREFIX$currdir$dirpart"))
 				{
 					echo "ai64: Cannot create final dir: $dir/$ARRPREFIX$currdir$dirpart\n";
@@ -1331,19 +1316,13 @@ function arrange_files($dir)
 		}
 	}
 
-	# Process all subdirs here
+	// Process all subdirs here
 	if (!empty($dirs_here) && count($dirs_here) > 0)
 	{
-		#echo "Have dirs in: $dir\n";
 		foreach ($dirs_here as $newdir)
 		{
-			#echo "E.g.: $newdir\n";
 			arrange_files("$dir/$newdir");
 		}
-	}
-	else
-	{
-		#echo "No dirs in $dir\n";
 	}
 }
 
