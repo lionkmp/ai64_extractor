@@ -42,45 +42,6 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     ERRORHALT={errorhalt}
     tmp_dir={tmpdir}
 ";
-/* ************
-** ChangeLog **
-***************
-  x.x (2010/03/07/lion):
-		Change to GetOpt library, argument format change
-		Support -x for setting comma as seaprator (-x ,)
-		Support -v for verbose.
-      Move skip file from argument 3 to "-s path/name"
-      Common error message format.
-      
-  1.3 (2006/01/02/lion):
-  		Support for c1541 (VICE) to list d64 files (default from now)
-		(Illegal track&sector errors won't stop with c1541 because
-		it returns OK exit code as of version 4.00.)
-
-  1.2 (2005/12/27/lion):
-  		PHP 5.x warnings of uninitialized variables fixed
-		Code formatting changed from K&R to new
-		Rearrange dirnames contain first file part (eg. "ai300-blackjack")
-		Errors from d64list were ignored. Not from now.
-
-  1.1 (2005/01/23/lion):
-  		Adding some error handling, fatal error quits (mkdir,opendir)
-		Added a config (ERRORHALT) for archiver error quits
-  		TAR, GZ, TGZ, RAR, LNX, ZIPCODE support added
-		D64 now can ignore separators and hi-scores to some degree
-		Config variables are now uppercase
-		Cleaning up tmp dir avoids copying old files again
-		Checking for required tools, quit with error if missing
-		Handling invalid chars in filenames and invalid extensions
-
-  1.0 (2004/10/23/lion):
-  		First version:
-		System architecture design
-		PRG, D64, T64, ZIP, P00 support
-		Max 100 file rearranging
-*/
-
-// Default values
 
 // Set this to empty string if you don't have d64list,c1541 or compatible
 //$D64LIST = "d64list {0}";
@@ -185,6 +146,10 @@ if($armed != 1)
 
 // Stores all zipcode names to avoid processing them 4 times (1!x 2!x etc)
 unset($processed_zipcodes);
+
+// Windows device names for file name validity check
+$windevices = "(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]|CLOCK\\$)";
+$is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 
 /*** check external tools availabilty ***/
 
@@ -1185,10 +1150,10 @@ function save_file($dir,$file,$dest_dir)
 // CONVERT ONE FILENAME TO IDE64 COMPATIBLE
 function normalize_name($file, $index = 0)
 {
-	global $extsep;
+	global $extsep, $windevices, $is_windows;
 	
-	// Lowercase, trim it
-	$file = trim(strtolower($file));
+	// Remove non-ascii chars
+	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
 	// Reduce multiple spaces to a single space
 	$file = preg_replace('/  */',' ',$file);
@@ -1196,6 +1161,15 @@ function normalize_name($file, $index = 0)
 	// Remove invalid characters * : = / and ? (According to Soci.)
 	$file = preg_replace('/[\*:=\?]/','.',$file);
 
+	if($is_windows)
+	{
+		// More invalid characters on windows '<', '>', '\\', '/', ':', '"', '|', '?', '*'
+		$file = preg_replace('/[<>\\:\/"|\?\*]+/', '.', $file);
+	}
+	
+	// Lowercase, trim it
+	$file = trim(strtolower($file));
+	
 	// Get last extension ("." and "," are both separators)
 	$nameparts = split('[\.,]',$file);
 
@@ -1214,7 +1188,7 @@ function normalize_name($file, $index = 0)
 	// If the extension is invalid (according to Soci) add .prg!
 	if ($lext == "s" || $lext == "p" || $lext == "d" || $lext == "u" ||
 		$lext == "l" || $lext == "b" || $lext == "j" || $lext == "a" ||
-		$lext == "dir" || $lext == "lnk" || $lext == "rel" || $lext == "del")
+		$lext == "dir" || $lext == "lnk" || $lext == "rel" || $lext == "del" || $lext == "")
 	{
 		$nameonly .= ".$lext"; // Add back to filename, may be useful
 		$lext = "prg";
@@ -1222,6 +1196,29 @@ function normalize_name($file, $index = 0)
 
 	// Truncate long extension
 	$lext = substr($lext,0,3);
+
+	if($is_windows)
+	{
+		// Match device name ("PRN", "PRN.txt").
+		if(preg_match("/^".$windevices."$/i", $nameonly))
+		{
+			$nameonly .= "win"; // Devices are short, so this will fit in 16
+		}
+		
+		// Disallow filename ending with "."
+		$nameonly = preg_replace('/\.+$/', '', $nameonly);
+		$lext = preg_replace('/\.+$/', '', $lext);
+	}
+	
+	// Nothing left after filters?
+	if($nameonly == '')
+	{
+		$nameonly = 'noname';
+	}
+	if($lext == '')
+	{
+		$lext == 'prg';
+	}
 
 	// No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)

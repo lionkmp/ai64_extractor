@@ -1,0 +1,42 @@
+********************
+** ai64 ChangeLog **
+********************
+
+  x.x (2010/03/07/lion):
+		Change to GetOpt library, argument format changed.
+		Support -x for setting comma as seaprator (-x ,).
+		Support -v for verbose.
+		Move skip file from third argument to "-s path/name".
+		Common error message format.
+		Allow only ASCII chars in output filenames.
+		Restrict output filename chars when used on Windows.
+		Add "prg" if no extension exists on save.
+		Add "noname" if no name left after character filters.
+      
+  1.3 (2006/01/02/lion):
+  		Support for c1541 (VICE) to list d64 files (default from now)
+		(Illegal track&sector errors won't stop with c1541 because
+		it returns OK exit code as of version 4.00.)
+
+  1.2 (2005/12/27/lion):
+  		PHP 5.x warnings of uninitialized variables fixed
+		Code formatting changed from K&R to new
+		Rearrange dirnames contain first file part (eg. "ai300-blackjack")
+		Errors from d64list were ignored. Not from now.
+
+  1.1 (2005/01/23/lion):
+  		Adding some error handling, fatal error quits (mkdir,opendir)
+		Added a config (ERRORHALT) for archiver error quits
+  		TAR, GZ, TGZ, RAR, LNX, ZIPCODE support added
+		D64 now can ignore separators and hi-scores to some degree
+		Config variables are now uppercase
+		Cleaning up tmp dir avoids copying old files again
+		Checking for required tools, quit with error if missing
+		Handling invalid chars in filenames and invalid extensions
+
+  1.0 (2004/10/23/lion):
+  		First version:
+		System architecture design
+		PRG, D64, T64, ZIP, P00 support
+		Max 100 file rearranging
+
