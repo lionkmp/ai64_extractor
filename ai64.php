@@ -237,12 +237,15 @@ if ($found_files != "")
 
 /*** Start processing ***/
 
-echo("Starting the conversion.\nIf you see error messages from the external tools, you may want to examine those files.\n");
-process_dir($source_dir,$dest_dir);
+echo("\nPass 1: Converting files.\nIf you see error messages from the external tools, you may want to examine those files.\n");
+process_dir($source_dir, $dest_dir);
 
-echo "Rearranging for max 100 files per dir\n";
+echo("Pass 2: Fixing directory names.\n");
+rename_dirs_recursive($dest_dir, true);
 
+echo("Pass 3: Rearranging for max 100 files per dir.\n");
 arrange_files($dest_dir);
+
 exit(0);
 
 
@@ -1128,14 +1131,10 @@ function save_file($dir,$file,$dest_dir)
 
 	$normalname = normalize_name($file);
 
-	if (is_file("$dest_dir/$normalname"))
+	// If destination file already exists, make DOS ~1 indexing :-)
+	for ($i = 1; is_file("$dest_dir/$normalname") || is_dir("$dest_dir/$normalname"); $i++)
 	{
-		// Destination file already exists, make DOS ~1 indexing :-)
-		for ($i = 1; is_file("$dest_dir/$normalname"); $i++)
-		{
-			$normalname = normalize_name($file,$i);
-		}
-
+		$normalname = normalize_name($file,$i);
 	}
 
 	if($verbose)
@@ -1152,23 +1151,7 @@ function normalize_name($file, $index = 0)
 {
 	global $extsep, $windevices, $is_windows;
 	
-	// Remove non-ascii chars
-	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
-
-	// Reduce multiple spaces to a single space
-	$file = preg_replace('/  */',' ',$file);
-
-	// Remove invalid characters * : = / and ? (According to Soci.)
-	$file = preg_replace('/[\*:=\?]/','.',$file);
-
-	if($is_windows)
-	{
-		// More invalid characters on windows '<', '>', '\\', '/', ':', '"', '|', '?', '*'
-		$file = preg_replace('/[<>\\:\/"|\?\*]+/', '.', $file);
-	}
-	
-	// Lowercase, trim it
-	$file = trim(strtolower($file));
+	$file = normalize_fixchars($file);
 	
 	// Get last extension ("." and "," are both separators)
 	$nameparts = split('[\.,]',$file);
@@ -1230,6 +1213,120 @@ function normalize_name($file, $index = 0)
 	// Cut the name, make space for extension and index) (15 => place for "-")
 	$file = substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
 	return($file);
+}
+
+function normalize_dirname($dir, $index = 0)
+{
+	global $is_windows;
+	
+	$dir = normalize_fixchars($dir);
+
+	if($is_windows)
+	{
+		// Match device name ("PRN"..).
+		if(preg_match("/^".$windevices."$/i", $dir))
+		{
+			$dir .= "win"; // Devices are short, so this will fit in 16
+		}
+		
+		// Disallow filename ending with "."
+		$dir = preg_replace('/\.+$/', '', $dir);
+	}
+	
+	// Nothing left after filters?
+	if($dir == '')
+	{
+		$dir = 'noname';
+	}
+
+	// No indexing requested, just cut the name
+	if ($index == 0)
+	{
+		return substr($dir, 0, 16);
+	}
+
+	// Cut the name, make space for index (15 => place for "-")
+	return substr($dir, 0, 15 - strlen($index)) . "-" . $index;
+}
+
+// Replace or remove not allowed filename characters
+function normalize_fixchars($file)
+{
+	global $is_windows;
+
+	// Remove non-ascii chars
+	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
+
+	// Reduce multiple spaces to a single space
+	$file = preg_replace('/  */',' ',$file);
+
+	// Remove invalid characters * : = / and ? (According to Soci.)
+	$file = preg_replace('/[\*:=\?]/','.',$file);
+
+	if($is_windows)
+	{
+		// More invalid characters on windows '<', '>', '\\', '/', ':', '"', '|', '?', '*'
+		$file = preg_replace('/[<>\\:\/"|\?\*]+/', '.', $file);
+	}
+	
+	// Lowercase, trim it
+	return trim(strtolower($file));
+}
+
+/*** RENAME DIRS TO FIT ON IDE64 ***/
+
+function rename_dirs_recursive($dir, $topdir)
+{
+	global $verbose;
+	
+	$dh = opendir($dir);
+	if ($dh === false)
+	{
+		echo("ai64: Cannot open dir: $dir\n");
+		exit(1);
+	}
+
+	// Loop on the current dir
+	while (($file = readdir($dh)) !== false) 
+	{
+		if ($file != '.' && $file != '..')
+		{
+			$fullname = "$dir/$file";
+
+			if (is_dir($fullname))
+			{
+				// Process deepest dirs first
+				rename_dirs_recursive($fullname, false);
+			}
+		}
+	}
+	closedir($dh);
+
+	// Don't rename conversion destination	
+	if(!$topdir)
+	{
+		// path[1] is parent + /, path[2] is the currnent dir name
+		preg_match("/^(.*\/)(.*)$/", $dir, &$path);
+		
+		$normalname = normalize_dirname($path[2]);
+		
+		// Renaming needed?
+		if($normalname != $path[2])
+		{
+			// If destination file already exists, make DOS ~1 indexing :-)
+			for ($i = 1; is_file($path[1].$normalname) || is_dir($path[1].$normalname); $i++)
+			{
+				$normalname = normalize_dirname($path[2], $i);
+			}
+			
+			if($verbose)
+			{
+				echo("ai64: Rename dir: $dir ---> ".$path[1].$normalname."\n");
+			}
+			
+			rename($dir, $path[1].$normalname);
+		}
+	}
 }
 
 /*** ARRANGE FILES TO LIMIT FILES/DIR ***/

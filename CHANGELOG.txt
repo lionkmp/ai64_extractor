@@ -12,6 +12,8 @@
 		Restrict output filename chars when used on Windows.
 		Add "prg" if no extension exists on save.
 		Add "noname" if no name left after character filters.
+		Rename dirs to fit on IDE64, similar to filenames
+		Dir name collision was not cheched in generating filenames
       
   1.3 (2006/01/02/lion):
   		Support for c1541 (VICE) to list d64 files (default from now)
