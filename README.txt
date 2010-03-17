@@ -1,6 +1,6 @@
 ai64 - C64 file extractor 
 
-Copyright (c) 2004 Ferenc 'Lion/Kempelen' Veres
+Copyright (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres
 lion@xaraya.hu http://lion.xaraya.hu
 
 LICENSE
@@ -126,28 +126,42 @@ Edit ai64 executable file if necessary:
 
 USAGE
 
+ai64.php [options] original_dir destination_dir
+
+    -s path/name    Skip to this file before staring processing
+                    (Use this to continue after something went wrong)
+    -x ,            Use ',' as file extension separator (default is '.')
+    -v              Verbose, list succesfully processed files
+
 1. Collect the c64 stuff what you want to convert into a directory structure. 
 2. Create an emtpy directory for the destination. 
-3. Run "ai64 sourcedirname destinationdirname".
+3. Run "ai64.php sourcedirname destinationdirname".
 
-If you want to stop the conversion and continue from a specific file again,
-you can also specify a third argument, name of a file in the source. Till that
-file just skipping will be made. Directory cannot be specified.
+If ".php" is not registered to your PHP interpreter, you may need to type 
+"php ai64.php" instead, assuming php.exe is on your PATH.
 
 The conversion process of one CD (600 MB) takes a lot of time.
 
-There is no warranty in any kind. So I advice again, to create a temporary
+There is no warranty of any kind. So I advice again, to create a temporary
 user which cannot write your home directory, and run the whole conversion by
 that user!
 
 TIPS
 
-1. Using Ramdisk
+1. Using Ramdisk or TmpFS
 
-Since the program creates and deletes a LOT of temporary files while 
+Since the program creates and deletes a LOT OF TEMPORARY FILES while 
 uncomressing the archives, it is a good idea to choose a temporary dir 
-(configred in the script) on a ramdisk. Usually Linux distros have ramdisk 
-by default, to find it see:
+(configred in the script) in RAM. 
+
+Using tmpfs (recommended)
+
+mount -t tmpfs none /mnt/rd
+chown lion2:lion2 /mnt/rd
+
+Using ramdisk (more complicated)
+
+Usually Linux distros have ramdisk by default, to find it see:
 
 ls /dev/ram*
 dmesg | grep -i ramdisk
@@ -163,9 +177,9 @@ chown lion2:lion2 /mnt/rd
 2. Logging the errors
 
 There is no option in the program to log the error messages, but it is very simple
-using standard Unix tool, "tee".
+using standard Unix tool, "tee" (-a is for append, if needed).
 
-ai64 orig_dir dest_dir 2>&1 | tee -a errorlog.txt
+ai64.php orig_dir dest_dir 2>&1 | tee -a errorlog.txt
 
 CONTACT
 
