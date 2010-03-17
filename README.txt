@@ -3,22 +3,6 @@ ai64 - C64 file extractor
 Copyright (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres
 lion@xaraya.hu http://lion.xaraya.hu
 
-LICENSE
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-
 WHAT IS THIS?
 
 ai64 allows you to comvert complete directory structures containing
@@ -126,6 +110,9 @@ Edit ai64 executable file if necessary:
 
 USAGE
 
+1. Collect the c64 stuff what you want to convert into a directory structure
+2. Run "ai64.php sourcedirname destinationdirname"
+
 ai64.php [options] original_dir destination_dir
 
     -s path/name    Skip to this file before staring processing
@@ -133,10 +120,6 @@ ai64.php [options] original_dir destination_dir
     -x ,            Use ',' as file extension separator (default is '.')
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
-
-1. Collect the c64 stuff what you want to convert into a directory structure. 
-2. Create an emtpy directory for the destination. 
-3. Run "ai64.php sourcedirname destinationdirname".
 
 If ".php" is not registered to your PHP interpreter, you may need to type 
 "php ai64.php" instead, assuming php.exe is on your PATH.
@@ -146,6 +129,18 @@ The conversion process of one CD (600 MB) takes a lot of time.
 There is no warranty of any kind. So I advice again, to create a temporary
 user which cannot write your home directory, and run the whole conversion by
 that user!
+
+Examples
+
+ai64.php -x , -v -w c64/Demos c64stuff
+
+  Converts with comma as extension separator, windows compatible file names.
+  Useful when copying to HD using FuseCFS (http://singularcrew.hu/idedos/).
+
+ai64.php downloadedwares coolwares
+
+  Convers with dot as separator. Linux file naming conventions.
+  Useful when burning a CD for use with IDE64.
 
 TIPS
 
@@ -181,6 +176,21 @@ There is no option in the program to log the error messages, but it is very simp
 using standard Unix tool, "tee" (-a is for append, if needed).
 
 ai64.php orig_dir dest_dir 2>&1 | tee -a errorlog.txt
+
+LICENSE
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 CONTACT
 

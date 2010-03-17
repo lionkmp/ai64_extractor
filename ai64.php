@@ -4,11 +4,11 @@ $version = "1.3";
 
 /*
     ai64 - C64 archive files batch extractor
-    (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@xaraya.hu)
+    Copyright (C) 2004-2010 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu)
 
-    This program is free software; you can redistribute it and/or modify
+    This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
+    the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
@@ -17,16 +17,15 @@ $version = "1.3";
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 $helptext="  ai64 V".$version." - C64 archive files batch extractor
-  (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres (lion@netngine.hu)
+  (c) 2004-2010 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu) 
 
   ai64 allows you to convert complete directory structures containing
   c64 wares into IDE64 compatible copy of the whole strucure, before 
-  burning a CD for c64/IDE64 usage. Read the README file for more info.
+  burning a CD for C64/IDE64 usage. Read the README file for more info.
  
   Usage: ai64.php [options] original_dir destination_dir
   
@@ -36,7 +35,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
 
-  Current configuration (hardcoded in this script so far):
+  Current configuration (hardcoded in this script):
     D64LIST={d64list}
     CBMCONVERT={cbmconvert}
     ARRPREFIX={arrprefix}
