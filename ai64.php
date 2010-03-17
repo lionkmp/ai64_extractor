@@ -28,12 +28,13 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
   c64 wares into IDE64 compatible copy of the whole strucure, before 
   burning a CD for c64/IDE64 usage. Read the README file for more info.
  
-  Usage: ai64 [options] original_dir destination_dir
+  Usage: ai64.php [options] original_dir destination_dir
   
     -s path/name    Skip to this file before staring processing
                     (Use this to continue after something went wrong)
     -x ,            Use ',' as file extension separator (default is '.')
     -v              Verbose, list succesfully processed files
+    -w              Force windows compatible file naming
 
   Current configuration (hardcoded in this script so far):
     D64LIST={d64list}
@@ -62,6 +63,10 @@ $tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
 
 // ------- end of config ------
 
+// Windows device names for file name validity check
+$windevices = "(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]|CLOCK\\$)";
+$is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
+
 // Check argument list
 $arm_file = 0;
 $armed = 1;
@@ -69,7 +74,7 @@ $args = 0;
 $verbose = false;
 $extsep = ".";
 
-$opts = getopt("vhs:x:");
+$opts = getopt("vhs:x:w");
 
 // Help?
 if(isset($opts['h'])) {
@@ -98,10 +103,16 @@ if(isset($opts['v'])) {
 	$args++; // Eat -v
 }
 
+// Force windows naming
+if(isset($opts['w'])) {
+	$is_windows = true;
+	$args++; // Eat -w
+}
+
 // Last two args are source and destination 
 if ($argc - $args != 3)
 {
-	echo "Usage: ai64 source_dir destination_dir [skipto_filename] (-h for help)\n\n";
+	echo "Usage: ai64.php [options] source_dir destination_dir (-h for help)\n\n";
 	exit(1);
 }
 $source_dir = $argv[$argc-2];
@@ -146,10 +157,6 @@ if($armed != 1)
 
 // Stores all zipcode names to avoid processing them 4 times (1!x 2!x etc)
 unset($processed_zipcodes);
-
-// Windows device names for file name validity check
-$windevices = "(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]|CLOCK\\$)";
-$is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 
 /*** check external tools availabilty ***/
 
@@ -1193,6 +1200,8 @@ function normalize_name($file, $index = 0)
 		$lext = preg_replace('/\.+$/', '', $lext);
 	}
 	
+	$nameonly = normalize_spacing($nameonly);
+	
 	// Nothing left after filters?
 	if($nameonly == '')
 	{
@@ -1215,9 +1224,10 @@ function normalize_name($file, $index = 0)
 	return($file);
 }
 
+// CONVERT ONE DIRNAME TO IDE64 COMPATIBLE
 function normalize_dirname($dir, $index = 0)
 {
-	global $is_windows;
+	global $is_windows, $windevices;
 	
 	$dir = normalize_fixchars($dir);
 
@@ -1232,6 +1242,8 @@ function normalize_dirname($dir, $index = 0)
 		// Disallow filename ending with "."
 		$dir = preg_replace('/\.+$/', '', $dir);
 	}
+	
+	$dir = normalize_spacing($dir);
 	
 	// Nothing left after filters?
 	if($dir == '')
@@ -1257,9 +1269,6 @@ function normalize_fixchars($file)
 	// Remove non-ascii chars
 	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
-	// Reduce multiple spaces to a single space
-	$file = preg_replace('/  */',' ',$file);
-
 	// Remove invalid characters * : = / and ? (According to Soci.)
 	$file = preg_replace('/[\*:=\?]/','.',$file);
 
@@ -1270,7 +1279,19 @@ function normalize_fixchars($file)
 	}
 	
 	// Lowercase, trim it
-	return trim(strtolower($file));
+	return trim(strtolower($file));  // normalize_spacing() is also called later!
+}
+
+// Truncate leading and trailling dots and spaces
+// Convert repeated dots or spaces to one 
+function normalize_spacing($file)
+{
+	// Reduce multiple spaces and dots to a single
+	$file = preg_replace('/  */', ' ', $file);
+	$file = preg_replace('/\.\.*/', '.', $file);
+
+	// Trim dot and space
+	return trim($file, " .");
 }
 
 /*** RENAME DIRS TO FIT ON IDE64 ***/

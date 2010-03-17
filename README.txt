@@ -132,6 +132,7 @@ ai64.php [options] original_dir destination_dir
                     (Use this to continue after something went wrong)
     -x ,            Use ',' as file extension separator (default is '.')
     -v              Verbose, list succesfully processed files
+    -w              Force windows compatible file naming
 
 1. Collect the c64 stuff what you want to convert into a directory structure. 
 2. Create an emtpy directory for the destination. 
