@@ -1268,8 +1268,8 @@ function normalize_fixchars($file)
 	// Remove non-ascii chars
 	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
-	// Remove invalid characters * : = / and ? (According to Soci.)
-	$file = preg_replace('/[\*:=\?]/','.',$file);
+	// Remove invalid characters * : = / and ? (According to Soci, plus comma)
+	$file = preg_replace('/[\*:=\?,]/','.',$file);
 
 	if($is_windows)
 	{
