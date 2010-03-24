@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-$version = "1.3";
+$version = "1.4";
 
 /*
     ai64 - C64 archive files batch extractor
@@ -62,9 +62,16 @@ $tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
 
 // ------- end of config ------
 
-// Windows device names for file name validity check
+// Windows device names for file name validity check (regexp)
 $windevices = "(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]|CLOCK\\$)";
 $is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
+
+// Ignore these files (regexp)
+// Text files: txt, diz, me, nfo
+// Windows/Dos programs: exe, com
+// D64 separators: del
+// Movies: avi, mpg, mpeg
+$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg)";
 
 // Check argument list
 $arm_file = 0;
@@ -351,7 +358,7 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 // Detect type and call related function
 function process_file($dir,$file,$dest_dir)
 {
-	global $verbose;
+	global $verbose, $skiptypes;
 
 	if($verbose)
 	{
@@ -399,105 +406,66 @@ function process_file($dir,$file,$dest_dir)
 		// File consist of some dot separated parts, take the last as extension
 		$lext = strtolower($nameparts[count($nameparts)-1]);
 
-		switch ($lext)
+		// NOT ON SKIP LIST?
+		if(!preg_match("/^".$skiptypes."$/i", $lext))
 		{
+			switch ($lext)
+			{
+			case 'zip':
+				// Zip compressed
+				process_file_zip($dir,$file,$dest_dir);
+				break;
+	
+			case 'rar':
+				// Rar compressed
+				process_file_rar($dir,$file,$dest_dir);
+				break;
+	
+			case 'gz':
+				// Gzip compressed
+				process_file_gz($dir,$file,$dest_dir);
+				break;
+	
+			case 'tar':
+				// Tar archive
+				process_file_tar($dir,$file,$dest_dir);
+				break;
+	
+			case 'tgz':
+				// Gzip compressed Tar archive
+				process_file_tar($dir,$file,$dest_dir,"gzip");
+				break;
+	
+			case 'd64':
+				// Disk image
+				process_file_d64($dir,$file,$dest_dir);
+				break;
+	
+			case 't64':
+				// Tape image
+				process_file_t64($dir,$file,$dest_dir);
+				break;
+	
+			case 'p00':
+				// PC64 emu file image
+				process_file_p00($dir,$file,$dest_dir);
+				break;
+	
+			case 'lnx':
+				// Lynx file
+				process_file_lnx($dir,$file,$dest_dir);
+				break;
+	
+			case 'prg':
+				// C64 program
+				save_file($dir,$file,$dest_dir);
+				break;
 
-		// IGNORE THESE FILES
-
-		case 'txt':
-			// Text file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'diz':
-			// Text file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'me':
-			// Text file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'nfo':
-			// Text file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'com':
-			// Windows program file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'exe':
-			// Windows program file
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		case 'del':
-			// DEL separator extraced from D64 files
-			//save_file($dir,$file,$dest_dir);
-			break;
-
-		// PROCESS THESE FILES
-
-		case 'zip':
-			// Zip compressed
-			process_file_zip($dir,$file,$dest_dir);
-			break;
-
-		case 'rar':
-			// Rar compressed
-			process_file_rar($dir,$file,$dest_dir);
-			break;
-
-		case 'gz':
-			// Gzip compressed
-			process_file_gz($dir,$file,$dest_dir);
-			break;
-
-		case 'tar':
-			// Tar archive
-			process_file_tar($dir,$file,$dest_dir);
-			break;
-
-		case 'tgz':
-			// Gzip compressed Tar archive
-			process_file_tar($dir,$file,$dest_dir,"gzip");
-			break;
-
-		case 'd64':
-			// Disk image
-			process_file_d64($dir,$file,$dest_dir);
-			break;
-
-		case 't64':
-			// Tape image
-			process_file_t64($dir,$file,$dest_dir);
-			break;
-
-		case 'p00':
-			// PC64 emu file image
-			process_file_p00($dir,$file,$dest_dir);
-			break;
-
-		case 'lnx':
-			// Lynx file
-			process_file_lnx($dir,$file,$dest_dir);
-			break;
-
-		case 'prg':
-			// C64 program
-			save_file($dir,$file,$dest_dir);
-			break;
-
-
-		// KEEP UNKNOWN FILES
-
-		default:
-			// Unknown file type
-			save_file($dir,$file,$dest_dir);
-			break;
+			default:
+				// Keep unknown files
+				save_file($dir,$file,$dest_dir);
+				break;
+			}
 		}
 	}
 
@@ -1148,8 +1116,7 @@ function save_file($dir,$file,$dest_dir)
 		echo "ai64: Saving: $dir/$file to $dest_dir/$normalname\n";
 	}
 	copy("$dir/$file", "$dest_dir/$normalname");
-	
-
+	chmod("$dest_dir/$normalname", 0755);
 }
 
 // CONVERT ONE FILENAME TO IDE64 COMPATIBLE
