@@ -16,8 +16,8 @@ SYSTEM REQUIREMENTS
 PHP-CLI
     Which makes it possible to run PHP programs from the command line.
 Linux/Unix
-    Was only tested, I doubt that the program can work in non *nix environment,
-    but prove me wrong and let me know (or send patches).
+	Tested on Linux only. Windows compatible filename generation is now 
+	supported, Windows platform support is planned (never tested).
 unzip
     Command line unzip to decompress the files.
 unrar
@@ -28,20 +28,17 @@ gzip
     Command line gzip to decompress the files.
 zip2disk
     Zipcode to d64 converter by Marko Makela. 
-    You can grab it from ftp://ftp.funet.fi/pub/cbm
+    ftp://c64.rulez.org/pub/c64/other-OS/Unix
 cbmconvert
-    Marko Makela's converter masterpiece to handle all the c64 file formats.
-    You can grab it from ftp://ftp.funet.fi/pub/cbm
-d64list [Optional]
-    This is a little C program I made years ago, you can grab it from
-    ftp://c64.rulez.org/pub/c64/other-OS/Unix/ for example.
-
-"d64list" external program is used to analize d64 files. Any program
-which prints d64 dirlists given in the parameter list, could do the
-job, if the output is similar. If this program is not available, all 
-d64's containing only 1 file will be extracted. Using d64list, only those
-disks are extracted where the single file size plus free blocks size 
-sums to 664.
+    Marko Makela's converter masterpiece to handle all the c64 file formats
+	(tested with v2.1.2).
+    ftp://ftp.zimmers.net/pub/cbm/crossplatform/converters/unix
+c1541
+	Command line utility, part of Vice emulator (tested with v2.2).
+	http://www.viceteam.org/
+d64list [Not needed if you use Vice c1541]
+    This is a little C program I made years ago, included in ai64 download.
+    ftp://c64.rulez.org/pub/c64/other-OS/Unix/
 
 WHAT DOES IT DO?
 
@@ -61,9 +58,9 @@ COM: not copied
 EXE: not copied
 DEL: not copied (D64 extraction dirt)
 ZIP: uncompressed and re-processed 
-D64: extraced if 1 file only (and valid BAM if d64list available. Hi-score
+D64: extraced if 1 file only and BAM is valid. Hi-score
      files - if identified - are ignored if there is only 1 more file. Some
-     BAM validation messages in names/headers are taken into consideration.)
+     BAM validation messages in names/headers are taken into consideration.
 T64: extraced to files (if there is a single file named "FILE" is inside, 
      the name of the original t64 is used when saving it to prg.)
 P00: extracted to normal files
@@ -120,6 +117,7 @@ ai64.php [options] original_dir destination_dir
     -x ,            Use ',' as file extension separator (default is '.')
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
+    -h              Print this help
 
 If ".php" is not registered to your PHP interpreter, you may need to type 
 "php ai64.php" instead, assuming php.exe is on your PATH.
