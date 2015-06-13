@@ -1,10 +1,10 @@
 #!/usr/bin/php
 <?php
-$version = "1.4";
+$version = "1.5alpha1";
 
 /*
     ai64 - C64 archive files batch extractor
-    Copyright (C) 2004-2010 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu)
+    Copyright (C) 2004-2015 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ $version = "1.4";
 */
 
 $helptext="  ai64 V".$version." - C64 archive files batch extractor
-  (c) 2004-2010 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu) 
+  (c) 2004-2015 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu) 
 
   ai64 allows you to convert complete directory structures containing
   c64 wares into IDE64 compatible copy of the whole strucure, before 
@@ -1235,8 +1235,14 @@ function normalize_fixchars($file)
 	// Remove non-ascii chars
 	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
-	// Remove invalid characters * : = / and ? (According to Soci, plus comma)
-	$file = preg_replace('/[\*:=\?,]/','.',$file);
+	// Remove invalid characters * : = / and ? (According to Soci, plus comma, ^, \\)
+	$file = preg_replace('/[\*:=\?,\\\\^]/','.',$file);
+
+	// Replace some fusecfs unfriendly chars
+	$file = str_replace('{', '[', $file);
+	$file = str_replace('}', ']', $file);
+	$file = str_replace('`', '\'', $file);
+	$file = str_replace('~', '-', $file);
 
 	if($is_windows)
 	{
@@ -1293,7 +1299,7 @@ function rename_dirs_recursive($dir, $topdir)
 	if(!$topdir)
 	{
 		// path[1] is parent + /, path[2] is the currnent dir name
-		preg_match("/^(.*\/)(.*)$/", $dir, &$path);
+		preg_match("/^(.*\/)(.*)$/", $dir, $path);
 		
 		$normalname = normalize_dirname($path[2]);
 		
