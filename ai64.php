@@ -32,6 +32,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -s path/name    Skip to this file before staring processing
                     (Use this to continue after something went wrong)
     -x ,            Use ',' as file extension separator (default is '.')
+    -n 100          Number of maximum files per folder
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
 
@@ -58,7 +59,7 @@ $ERRORHALT="ignore";
 
 // Creating extraction dirs below this one (see ramdisk hint in the readme)
 //$tmp_dir = '/tmp/'.getenv('USER').".ai64";
-$tmp_dir = '/mnt/rd/'.getenv('USER').".ai64";
+$tmp_dir = '/tmp/'.getenv('USER').".ai64";
 
 // ------- end of config ------
 
@@ -77,10 +78,11 @@ $skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg)";
 $arm_file = 0;
 $armed = 1;
 $args = 0;
+$max_files = 100;
 $verbose = false;
 $extsep = ".";
 
-$opts = getopt("vhs:x:w");
+$opts = getopt("vhn:s:x:w");
 
 // Help?
 if(isset($opts['h'])) {
@@ -101,6 +103,16 @@ if(isset($opts['s'])) {
 if(isset($opts['x'])) {
 	$extsep = $opts['x'];
 	$args += 2; // Eat -x and value
+}
+
+// Number of files for rearrange
+if(isset($opts['n'])) {
+	$max_files = intval($opts['n']);
+	if($max_files > 510) {
+		echo("IDEDOS 0.91 MAN cannot handle more than 510 files per folder.\n\n");
+		exit(1);
+	}
+	$args += 2; // Eat -n and value
 }
 
 // Verbose?
@@ -256,7 +268,7 @@ process_dir($source_dir, $dest_dir);
 echo("Pass 2: Fixing directory names.\n");
 rename_dirs_recursive($dest_dir, true);
 
-echo("Pass 3: Rearranging for max 100 files per dir.\n");
+echo("Pass 3: Rearranging for max $max_files files per dir.\n");
 arrange_files($dest_dir);
 
 exit(0);
@@ -1324,11 +1336,11 @@ function rename_dirs_recursive($dir, $topdir)
 
 /*** ARRANGE FILES TO LIMIT FILES/DIR ***/
 
-// Create subdirectories for the files if there are more than 100
-// files in a dir (IDE64 MAN reads only 127!)
+// Create subdirectories for the files if there are more than requested
+// files in a dir (IDE64 MAN 0.91 reads 510, an old version reads 127)
 function arrange_files($dir)
 {
-	global $ARRPREFIX;
+	global $ARRPREFIX, $max_files;
 
 	$dh = opendir($dir);
 	if ($dh === false)
@@ -1336,23 +1348,17 @@ function arrange_files($dir)
 		echo("ai64: Cannot open dir for arranging files: $dir\n");
 		exit(1);
 	}
-	unset($dirs_here);
 	unset($files_here);
 
 	// Loop on the current dir
-	// Collect files and dirs into two arrays
+	// Collect files and dirs
 	while (($file = readdir($dh)) !== false)
 	{
 		if ($file != '.' && $file != '..')
 		{
 			$fullname = "$dir/$file";
 
-			if (is_dir($fullname))
-			{
-				// Subdirectory, store for later processing
-				$dirs_here[] = $file;
-			}
-			elseif (is_file($fullname))
+			if (is_dir($fullname) || is_file($fullname))
 			{
 				$files_here[] = $file;
 			}
@@ -1367,10 +1373,9 @@ function arrange_files($dir)
 
 	// How many files and dirs we have here?
 	$filecount = ( empty($files_here) ? 0 : count($files_here) );
-	$dircount = ( empty($dirs_here) ? 0 : count($dirs_here) );
 
-	// If here are some files and the total of files+dirs > 100, do the rearrange
-	if ($filecount > 0 && ($filecount + $dircount) > 100)
+	// If here are some files and the total of files+dirs > $max_files, do the rearrange
+	if($filecount > $max_files)
 	{
 		sort($files_here);
 
@@ -1381,8 +1386,8 @@ function arrange_files($dir)
 		// Process all files here
 		for ($i = 0; $i < $filesnum; $i++)
 		{
-			// What is the /100 part of this (to see if we must open new dir for this file)
-			$currdir = (int) ($i/100) * 100 + 100;
+			// What is the /$max_files part of this (to see if we must open new dir for this file)
+			$currdir = (int) ($i/$max_files) * $max_files; // + $max_files;
 
 			// Create the dir if not yet done
 			if ($currdir != $lastdir)
@@ -1399,16 +1404,13 @@ function arrange_files($dir)
 				}
 				$lastdir = $currdir;
 			}
-			rename("$dir/$files_here[$i]","$dir/$ARRPREFIX$currdir$dirpart/$files_here[$i]");
-		}
-	}
+			$target = "$dir/$ARRPREFIX$currdir$dirpart/$files_here[$i]";
+			rename("$dir/$files_here[$i]", $target);
 
-	// Process all subdirs here
-	if (!empty($dirs_here) && count($dirs_here) > 0)
-	{
-		foreach ($dirs_here as $newdir)
-		{
-			arrange_files("$dir/$newdir");
+			// Recurse into moved subdirs
+			if(is_dir($target)) {
+				arrange_files($target);
+			}
 		}
 	}
 }
