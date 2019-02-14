@@ -117,6 +117,7 @@ ai64.php [options] original_dir destination_dir
     -x ,            Use ',' as file extension separator (default is '.')
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
+    -u              Outputs IDE64 friendly unicode chars for ^ and others
     -h              Print this help
 
 If ".php" is not registered to your PHP interpreter, you may need to type 

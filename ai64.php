@@ -35,6 +35,10 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -n 100          Number of maximum files per folder
     -v              Verbose, list succesfully processed files
     -w              Force windows compatible file naming
+    -u              Enable unicode chars like "
+	.mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES')." "
+	.mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES')." "
+	.mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES')."
 
   Current configuration (hardcoded in this script):
     D64LIST={d64list}
@@ -72,7 +76,13 @@ $is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 // Windows/Dos programs: exe, com
 // D64 separators: del
 // Movies: avi, mpg, mpeg
-$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg)";
+// Documents: pdf, doc, djvu
+// PC Images: jpg, jpeg, png, gif
+// PC Data: .db (thumbs), .ini (desktop)
+$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini)";
+
+// Extensionless readme files (not copied)
+$readmefiles = "(00index|readme)";
 
 // Check argument list
 $arm_file = 0;
@@ -81,8 +91,9 @@ $args = 0;
 $max_files = 100;
 $verbose = false;
 $extsep = ".";
+$unicode = false;
 
-$opts = getopt("vhn:s:x:w");
+$opts = getopt("vhn:s:x:wu");
 
 // Help?
 if(isset($opts['h'])) {
@@ -125,6 +136,12 @@ if(isset($opts['v'])) {
 if(isset($opts['w'])) {
 	$is_windows = true;
 	$args++; // Eat -w
+}
+
+// Allow Unicode filenames (up arrow and others)
+if(isset($opts['u'])) {
+	$unicode = true;
+	$args++; // Eat -u
 }
 
 // Last two args are source and destination 
@@ -370,7 +387,7 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 // Detect type and call related function
 function process_file($dir,$file,$dest_dir)
 {
-	global $verbose, $skiptypes;
+	global $verbose, $skiptypes, $readmefiles;
 
 	if($verbose)
 	{
@@ -378,7 +395,7 @@ function process_file($dir,$file,$dest_dir)
 	}	
 
 	// Split at dot for extensions
-	$nameparts = split('\.',$file);
+	$nameparts = explode('.',$file);
 
 	// Zipcode (requires special handling)
 	if (preg_match('/^[1234]!(.*)$/',$file,$matches)) 
@@ -410,8 +427,10 @@ function process_file($dir,$file,$dest_dir)
 	}
 	elseif (count($nameparts) == 1)
 	{
-		// Filename cosinsts 1 part, just save it (cannot detect type)
-		save_file($dir,$file,$dest_dir);
+		// Filename cosinsts 1 part (cannot detect type), save except readme files
+		if(!preg_match("/^".$readmefiles."$/i", $file)) {
+			save_file($dir,$file,$dest_dir);
+		}
 	}
 	else
 	{
@@ -682,7 +701,7 @@ function process_file_d64($dir,$file,$dest_dir)
 		}
 
 		// Analize output, calculate entries, total blocks, free blocks
-		foreach (split("\n",$contents) as $line)
+		foreach (explode("\n",$contents) as $line)
 		{
 			// Get the number from the line
 			if (preg_match('/^([0-9]+)/', $line, $matches))
@@ -1139,7 +1158,7 @@ function normalize_name($file, $index = 0)
 	$file = normalize_fixchars($file);
 	
 	// Get last extension ("." and "," are both separators)
-	$nameparts = split('[\.,]',$file);
+	$nameparts = preg_split('/[\.,]/',$file);
 
 	// If no extension, use .prg
 	if (count($nameparts) == 1)
@@ -1242,19 +1261,31 @@ function normalize_dirname($dir, $index = 0)
 // Replace or remove not allowed filename characters
 function normalize_fixchars($file)
 {
-	global $is_windows;
+	global $is_windows, $unicode;
 
 	// Remove non-ascii chars
 	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
 	// Remove invalid characters * : = / and ? (According to Soci, plus comma, ^, \\)
-	$file = preg_replace('/[\*:=\?,\\\\^]/','.',$file);
+	if(!$unicode) {
+		$file = preg_replace('/[\*:=\?,\/\\\\^]/','.',$file);
+	} else {
+		$file = preg_replace('/[\*:=\?,]/','.',$file);
+	}
 
 	// Replace some fusecfs unfriendly chars
 	$file = str_replace('{', '[', $file);
 	$file = str_replace('}', ']', $file);
 	$file = str_replace('`', '\'', $file);
 	$file = str_replace('~', '-', $file);
+
+	// With unicode support keep these chars
+	if($unicode) {
+		$file = str_replace('^', mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES'), $file);
+		$file = str_replace('\\', mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES'), $file);
+		$file = str_replace('|', mb_convert_encoding('&#x2502;', 'UTF-8', 'HTML-ENTITIES'), $file);
+		$file = str_replace('/', mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES'), $file);
+	}
 
 	if($is_windows)
 	{
@@ -1373,6 +1404,7 @@ function arrange_files($dir)
 
 	// How many files and dirs we have here?
 	$filecount = ( empty($files_here) ? 0 : count($files_here) );
+	echo "$dir: $filecount\n";
 
 	// If here are some files and the total of files+dirs > $max_files, do the rearrange
 	if($filecount > $max_files)
@@ -1397,6 +1429,7 @@ function arrange_files($dir)
 				$dirpart = "-".substr($dirpart, 0, 16 - strlen($ARRPREFIX) - strlen($currdir));
 				
 				// Create new dir e.g. "ai500-bubble". 
+				echo "Make dir: $dir/$ARRPREFIX$currdir$dirpart\n";
 				if (!mkdir("$dir/$ARRPREFIX$currdir$dirpart"))
 				{
 					echo "ai64: Cannot create final dir: $dir/$ARRPREFIX$currdir$dirpart\n";
@@ -1412,7 +1445,15 @@ function arrange_files($dir)
 				arrange_files($target);
 			}
 		}
+	} else if($filecount > 0) {
+		// Recurse into unchanged subdirs
+		foreach($files_here as $file_here) {
+			if(is_dir("$dir/$file_here")) {
+				arrange_files("$dir/$file_here");
+			}
+		}
 	}
+
 }
 
 /* *********************
