@@ -34,6 +34,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -x ,            Use ',' as file extension separator (default is '.')
     -n 100          Number of maximum files per folder
     -v              Verbose, list succesfully processed files
+    -V              Super Verbose, also list archives while processing them
     -w              Force windows compatible file naming
     -u              Enable unicode chars like "
 	.mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES')." "
@@ -79,7 +80,8 @@ $is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 // Documents: pdf, doc, djvu
 // PC Images: jpg, jpeg, png, gif
 // PC Data: .db (thumbs), .ini (desktop)
-$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini)";
+// "." one letter extensions like ".c" and two letter, all that fails to copy to IDE64 CFS
+$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini|.|..)";
 
 // Extensionless readme files (not copied)
 $readmefiles = "(00index|readme)";
@@ -90,10 +92,11 @@ $armed = 1;
 $args = 0;
 $max_files = 100;
 $verbose = false;
+$superverbose = false;
 $extsep = ".";
 $unicode = false;
 
-$opts = getopt("vhn:s:x:wu");
+$opts = getopt("vVhn:s:x:wu");
 
 // Help?
 if(isset($opts['h'])) {
@@ -130,6 +133,11 @@ if(isset($opts['n'])) {
 if(isset($opts['v'])) {
 	$verbose = true;
 	$args++; // Eat -v
+}
+if(isset($opts['V'])) {
+	$verbose = true;
+	$superverbose = true;
+	$args++; // Eat -V
 }
 
 // Force windows naming
@@ -350,6 +358,8 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 	// Process all files here
 	if (!empty($files_here) && count($files_here) > 0) 
 	{
+		natsort($files_here);
+
 		foreach ($files_here as $file) 
 		{
 			if ($armed == 1) 
@@ -367,6 +377,8 @@ function process_dir($dir,$dest_dir,$count_only = 0) {
 	// Process all subdirs here
 	if (!empty($dirs_here) && count($dirs_here) > 0)
 	{
+		natsort($dirs_here);
+
 		foreach ($dirs_here as $newdir) 
 		{
 			if (!is_dir("$dest_dir/$newdir")) 
@@ -427,7 +439,7 @@ function process_file($dir,$file,$dest_dir)
 	}
 	elseif (count($nameparts) == 1)
 	{
-		// Filename cosinsts 1 part (cannot detect type), save except readme files
+		// Filename without extension (cannot detect type), save except readme files
 		if(!preg_match("/^".$readmefiles."$/i", $file)) {
 			save_file($dir,$file,$dest_dir);
 		}
@@ -527,14 +539,15 @@ function process_file($dir,$file,$dest_dir)
 
 function process_file_zip($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64zip");
 
 	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
+	$opt = ($superverbose ? "" : "-qq");
 
-	system("unzip -qq -o -L -d $workdir $shellfile",$ret);
+	system("unzip $opt -o -L -d $workdir $shellfile",$ret);
 
 	if ($ret != 0)
 	{
@@ -555,14 +568,17 @@ function process_file_zip($dir,$file,$dest_dir)
 
 function process_file_rar($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64rar");
 
 	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
+	$opt = ($superverbose ? "" : "-idq"); // -inul can't display questions
+	// unrar-nonfree is used here. unrar-free cannot do RAR 3.0
+	// "unar" could be used with -D -q
 
-	system("unrar x -inul $shellfile $workdir/",$ret);
+	system("unrar x $superverbose $shellfile $workdir/",$ret);
 
 	if ($ret != 0)
 	{
@@ -583,7 +599,7 @@ function process_file_rar($dir,$file,$dest_dir)
 
 function process_file_gz($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64gz");
 
@@ -600,7 +616,9 @@ function process_file_gz($dir,$file,$dest_dir)
 	{
 		// Extract the file (if copy was ok)
 		$shellfile = escape_filename("$workdir/$file");
-		system("gzip -d $shellfile",$ret);
+		$opt = ($superverbose ? "-v" : "");
+
+		system("gzip -d $opt $shellfile",$ret);
 
 		if ($ret != 0)
 		{
@@ -622,20 +640,21 @@ function process_file_gz($dir,$file,$dest_dir)
 
 function process_file_tar($dir,$file,$dest_dir,$compress="")
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64tar");
 
 	// Extract the files
 	$shellfile = escape_filename("$dir/$file");
+	$opt = ($superverbose ? "-v" : "");
 
 	if ($compress == "gzip")
 	{
-		$command = "tar -xz -C $workdir -f $shellfile";
+		$command = "tar -xz $opt -C $workdir -f $shellfile";
 	}
 	else
 	{
-		$command = "tar -x -C $workdir -f $shellfile";
+		$command = "tar -x $opt -C $workdir -f $shellfile";
 	}
 	system($command,$ret);
 
@@ -658,7 +677,7 @@ function process_file_tar($dir,$file,$dest_dir,$compress="")
 
 function process_file_d64($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64d64");
 
@@ -693,6 +712,10 @@ function process_file_d64($dir,$file,$dest_dir)
 		system(str_replace('{0}', $shellfile, $D64LIST), $ret);
 		$contents = ob_get_contents();
 		ob_end_clean();
+
+		if($superverbose) {
+			echo $contents;
+		}
 
 		if($ret != 0)
 		{
@@ -760,7 +783,8 @@ function process_file_d64($dir,$file,$dest_dir)
 	{
 		// Extract the d64
 		chdir($workdir);
-		system($CBMCONVERT." -v0 -N -d $shellfile",$ret);
+		$opt = ($superverbose ? "-v2" : "-v0");
+		system($CBMCONVERT." $opt -N -d $shellfile",$ret);
 		chdir($old_cwd);
 
 		if ($ret != 0)
@@ -835,7 +859,7 @@ function process_file_d64($dir,$file,$dest_dir)
 
 function process_file_t64($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64t64");
 
@@ -854,7 +878,8 @@ function process_file_t64($dir,$file,$dest_dir)
 	}
 
 	chdir($workdir);
-	system($CBMCONVERT." -v0 -N -t $shellfile",$ret);
+	$opt = ($superverbose ? "-v2" : "-v0");
+	system($CBMCONVERT." $opt -N -t $shellfile",$ret);
 	chdir($old_cwd);
 
 	if ($ret != 0)
@@ -896,7 +921,7 @@ function process_file_t64($dir,$file,$dest_dir)
 
 function process_file_p00($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64p00");
 
@@ -915,7 +940,8 @@ function process_file_p00($dir,$file,$dest_dir)
 	}
 
 	chdir($workdir);
-	system($CBMCONVERT." -v0 -N -p $shellfile",$ret);
+	$opt = ($superverbose ? "-v2" : "-v0");
+	system($CBMCONVERT." $opt -N -p $shellfile",$ret);
 	chdir($old_cwd);
 
 	if ($ret != 0)
@@ -946,7 +972,7 @@ function process_file_p00($dir,$file,$dest_dir)
 
 function process_file_lnx($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 
 	$workdir = make_workdir("ai64lnx");
 
@@ -968,7 +994,8 @@ function process_file_lnx($dir,$file,$dest_dir)
 	$d64name = escape_filename(preg_replace('/lnx$/i','d64',$file));
 
 	chdir($workdir);
-	system($CBMCONVERT." -v0 -D4 $d64name -l $shellfile",$ret);
+	$opt = ($superverbose ? "-v2" : "-v0");
+	system($CBMCONVERT." $opt -D4 $d64name -l $shellfile",$ret);
 	chdir($old_cwd);
 
 	if ($ret != 0)
@@ -987,7 +1014,7 @@ function process_file_lnx($dir,$file,$dest_dir)
 
 function process_file_zipcode($dir,$file,$dest_dir)
 {
-	global $CBMCONVERT, $D64LIST;
+	global $CBMCONVERT, $D64LIST, $superverbose;
 	global $processed_zipcodes; // Array for previous ones to avoid processing 4 times
 
 	// Convert zipcode to d64
@@ -1030,6 +1057,9 @@ function process_file_zipcode($dir,$file,$dest_dir)
 	$zipname = escape_filename($zipname);
 
 	chdir($filesdir);
+	if($superverbose) {
+		echo "zip2disk $zipname $d64name\n";
+	}
 	system("zip2disk $zipname $d64name",$ret);
 	chdir($old_cwd);
 
@@ -1409,7 +1439,7 @@ function arrange_files($dir)
 	// If here are some files and the total of files+dirs > $max_files, do the rearrange
 	if($filecount > $max_files)
 	{
-		sort($files_here);
+		natsort($files_here);
 
 		$filesnum = count($files_here);
 		$lastdir = -1;
