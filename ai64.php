@@ -76,12 +76,13 @@ $is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 // Text files: txt, diz, me, nfo
 // Windows/Dos programs: exe, com
 // D64 separators: del
+// IDEDOS special types: del(^), dir, lnk, rel (they omit "invalid argument" message)
 // Movies: avi, mpg, mpeg
 // Documents: pdf, doc, djvu
 // PC Images: jpg, jpeg, png, gif
 // PC Data: .db (thumbs), .ini (desktop)
-// "." one letter extensions like ".c" and two letter, all that fails to copy to IDE64 CFS
-$skiptypes = "(txt|diz|me|nfo|com|exe|del|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini|.|..)";
+// "." one letter extensions like ".c" , that fails to copy to IDE64 CFS ("invalid argument")
+$skiptypes = "(txt|diz|me|nfo|com|exe|del|dir|lnk|rel|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini|.)";
 
 // Extensionless readme files (not copied)
 $readmefiles = "(00index|readme)";
