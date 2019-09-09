@@ -1,1 +1,197 @@
+Dir info file
+-------------
+
 00INDEX: rename to 00index.txt maybe?
+
+Keeping TXT files
+------------------
+- not an easy idea because some sites add TXT to all zips, e.g. 
+fileid.diz on TRC-SCS!
+
+Nicer name:
+-----------
+
+File ending + or +2 could be joined to the name directly, no space.
+
+delux thunder +,prg  -> delux thunder+,prg
+
+plus2 -> +2
+[ _]plus2 -> +2
+++ -> +2 ?
+[ _]++ -> +2?
+
+REL files
+---------
+
+They are extracted by cbmconvert as ".lFE" file, where FE is record length.
+
+
+Multiside disks
+---------------
+
+Could be recognized from S1, S2, S3:
+
+  inflating: /mnt/rd/lion2.ai64/ai64zip-36/Turrican_2.Rainbow_Arts.S1.d64
+  inflating: /mnt/rd/lion2.ai64/ai64zip-36/Turrican_2.Rainbow_Arts.S2.d64
+ai64: Saving: /mnt/rd/lion2.ai64/ai64zip-36/Turrican_2.Rainbow_Arts.S2.d64 to tdd-games-v/t/turrican_2.rainb,d64
+ai64: Saving: /mnt/rd/lion2.ai64/ai64zip-36/Turrican_2.Rainbow_Arts.S1.d64 to tdd-games-v/t/turrican_2.rai-1,d64
+
+  inflating: /mnt/rd/lion2.ai64/ai64zip-95/tiket2london1.D64
+  inflating: /mnt/rd/lion2.ai64/ai64zip-95/tiket2london2.D64
+
+  inflating: /mnt/rd/lion2.ai64/ai64zip-119/Turrican.Rainbow_Arts.Side_1.d64
+  inflating: /mnt/rd/lion2.ai64/ai64zip-119/Turrican.Rainbow_Arts.Side_2.d64
+ai64: Saving: /mnt/rd/lion2.ai64/ai64zip-119/Turrican.Rainbow_Arts.Side_2.d64 to tdd-games-v/t/turrican.rainbow,d64
+ai64: Saving: /mnt/rd/lion2.ai64/ai64zip-119/Turrican.Rainbow_Arts.Side_1.d64 to tdd-games-v/t/turrican.rainb-1,d64
+
+
+Formats:
+
+Case insensitice match:
+
+s1 s2 s3 s4
+d1 d2 d3 d4
+site1 side2 side3 side4
+disk1 disk2 disk3 disk4
+sidea sideb sidec sided
+diska diskb diskc diskd
+Indices could be supported up to 9 (or 1 char).
+One char allowed as separator:
+s.1 s.2 s.3 s.4
+d.1 d.2 d.3 d.4
+side.1 side.2 side.3 side.4
+disk.1 disk.2 disk.3 disk.4
+side.a side.b side.c side.d
+disk.a disk.b disk.c disk.d
+_1 _2
+_a _b
+1 2
+a b
+
+Detection of such names could disable D64 extraction. E.g.
+  inflating: /mnt/rd/lion2.ai64/ai64zip-102/Typhoon_S1.D64
+  inflating: /mnt/rd/lion2.ai64/ai64zip-102/Typhoon_S2.D64
+ 
+ai64: Saving: /mnt/rd/lion2.ai64/ai64zip-102/Typhoon_S2.D64 to tdd-games-v/t/typhoon_s2,d64
+0 "digital dungeon " 98 2a
+195   "typhoon+fix[inc]"  prg
+469 blocks free.
+ai64: Saving: /mnt/rd/lion2.ai64/ai64d64-104/typhoon+fix[inc].prg to tdd-games-v/t/typhoon+fix[inc],prg
+
+
+Group names or company names 
+----------------------------
+
+Could be removed:
+
+These needs to be identified on the long name (before cutting to 16) 
+because cutting may distort them to part!
+
+Rainbow_arts
+Epyx
+ABC
+Brutal
+Antic
+triad
+[pe]
+[ram]
+/b!
+/big
+/t+b
+/gods
+/empire
+/laser
+/trc+tbi
+(rad)
+/tbt!
+(/ is usual separator!) E.g. Regexps: "/.$" "/..$" "/...$"
+[ ] is usual marker, e.g. regexp "[.{1,3}]$"
+There are many-many different names!
+
+BUT: The "/big" is extracted as ".big" by cbmconvert!
+It can be found as /big in output of d64list.
+(but we don't have such output for t64/p00 extract, unless we ob_capture
+that too?)
+84    "tera attack+/emp"  prg
+
+
+Keep source file name instead of the C64-name
+---------------------------------------------
+
+Not so good idea probably!!
+
+A bemeneti fájl neve sokkal szebb mint a D64-beli név. Valahogy észre
+lehetne venni és megtartani. 
+1. Kezdeti "the_"-t eldobni
+2. Végéről nagybetűs vagy egyéb cracker jelöléseket eldobni
+3. +3 maradhatna ha belefér
+4. 2 és ii egyenrangú!
+
+/media/lion/LinuxBackup/lion/tdd-scene-2013-04/t/
+
+The_Island_of_Dr_Destructo+4.AARDVARK.zip
+	The_Island_of_Dr_Destructo.D64
+	islandofdrdestru,prg
+	
+Terra_Cresta_2.PUBLIC-ENEMY.zip
+	terra_crest_2.d64
+	terra cr.ii [pe].prg
+	
+Tron.THS-Software.TRIUMWYRAT.zip
+	tron.d64
+	tron .trium,prg
+
+The_Little_Puck_Goes_Home+.BORING.zip
+	litlpuck.t64
+	little puck+ /b!,prg
+	little puck+ .b!,prg
+
+The_Cursed_Key+2.RPL.zip
+	tcursedk.d64
+	cursed key+2.rpl,prg
+
+Time_Tunnel.US-Gold.HBB.zip
+	Time_Tunnel.t64
+	time tunnel,prg
+	
+Trac_Troopa+3.TRIAD.zip
+	trac_troopa+3-triad.d64
+	t.troopa+3.triad,prg
+	
+Teenage_Mutant_Ninja_Turtles.Ultra-Software+.NEC+X-FACTOR.zip
+	tmht.d64
+
+They_Stole_a_Million_II.Ariolasoft.TLC.zip
+	stolmil2.d64
+	stole-mill2(fbr,prg
+
+Trans_Atlantic_Balloon_Challenge.Virgin+.HOTLINE.zip
+	BALLOON.D64
+	balloon c.++.htl,prg
+
+(But in many cases the C64 name is totally OK!)
+
+Note or picture
+---------------
+
+0 "digital dungeon " 98 2a
+114   "the league"        prg
+19    "the league pic"    prg
+531 blocks free.
+
+
+Archive:  /media/lion/LinuxBackup/lion/tdd-scene-2013-04//t/The_Wall.CP-Verlag+.RUTHLESS.zip
+  inflating: /mnt/rd/lion2.ai64/ai64zip-105/The_Wall.t64
+ai64: Processing /mnt/rd/lion2.ai64/ai64zip-105/The_Wall.t64
+`/mnt/rd/lion2.ai64/ai64zip-105/The_Wall.t64':
+  T64 version 1.0, 2/2 files
+  `the wall+    -r-,prg':
+    Writing 17005 bytes to "the wall+    -r-.prg"
+  `the wall#    -r-,prg':
+    Writing 4935 bytes to "the wall#    -r-.prg"
+  Archive extracted.
+cbmconvert: all done
+ai64: Processing /mnt/rd/lion2.ai64/ai64t64-106/the wall#    -r-.prg
+ai64: Saving: /mnt/rd/lion2.ai64/ai64t64-106/the wall#    -r-.prg to tdd-games-v/t/the wall# -r-,prg
+ai64: Processing /mnt/rd/lion2.ai64/ai64t64-106/the wall+    -r-.prg
+ai64: Saving: /mnt/rd/lion2.ai64/ai64t64-106/the wall+    -r-.prg to tdd-games-v/t/the wall+ -r-,prg

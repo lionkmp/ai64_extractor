@@ -151,8 +151,8 @@ uncomressing the archives, it is a good idea to choose a temporary dir
 
 Using tmpfs (recommended)
 
-mount -t tmpfs none /mnt/rd
-chown lion2:lion2 /mnt/rd
+sudo mount -t tmpfs none /mnt/rd
+sudo chown lion2:lion2 /mnt/rd
 
 Using ramdisk (more complicated)
 
