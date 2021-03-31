@@ -2,6 +2,22 @@
 ** ai64 ChangeLog **
 ********************
 
+  1.5 (2019/09/09)
+  		Update to PHP 7.x
+  		Unicode support for up arrow chars and others.
+		Skip PC document types: doc, pdf, jpg, etc
+		Skip extensionless readme files (00index, readme)
+		Skip IDEDOS special types (they show "invalid argument" on fusecfs)
+		they are: del, dir, lnk, rel, and one letter extensions like .c
+		Fix unrar problem when unrar asked something.
+		More fixes to dir-rearrange.
+		Implement -V super-verbose mode.
+		(2015/06/13)
+		Update to current PHP.
+		Update to current IDEDOS (Remove chars like ^, will need Unicode)
+		Add -n NUM option to choose number of files per dir.
+		Other improvements to dir-rearrange.
+  
   1.4 (2010/03/24/lion):
 		Change to GetOpt library, argument format changed
 		Support -x for setting comma as seaprator (-x ,)

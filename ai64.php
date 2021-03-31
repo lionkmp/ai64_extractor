@@ -4,7 +4,7 @@ $version = "1.5alpha1";
 
 /*
     ai64 - C64 archive files batch extractor
-    Copyright (C) 2004-2015 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu)
+    Copyright (C) 2004-2021 Ferenc Veres (Lion/Kempelen) (lion@c64.rulez.org)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ $version = "1.5alpha1";
 */
 
 $helptext="  ai64 V".$version." - C64 archive files batch extractor
-  (c) 2004-2015 Ferenc Veres (Lion/Kempelen) (lion@netngine.hu) 
+  (c) 2004-2021 Ferenc Veres (Lion/Kempelen) (lion@c64.rulez.org)
 
   ai64 allows you to convert complete directory structures containing
   c64 wares into IDE64 compatible copy of the whole strucure, before 
@@ -29,17 +29,17 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
  
   Usage: ai64.php [options] original_dir destination_dir
   
-    -s path/name    Skip to this file before staring processing
+    -s path/name    Skip to this source file before staring processing
                     (Use this to continue after something went wrong)
-    -x ,            Use ',' as file extension separator (default is '.')
-    -n 100          Number of maximum files per folder
+    -x ,            Use ',' as file extension separator (default '.')
+    -n 100          Number of maximum files per folder (default 300)
     -v              Verbose, list succesfully processed files
-    -V              Super Verbose, also list archives while processing them
-    -w              Force windows compatible file naming
+    -V              Super-verbose, also list archives while processing them
+    -w              Force windows compatible file naming (remove more chars)
     -u              Enable unicode chars like "
 	.mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES')." "
 	.mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES')." "
-	.mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES')."
+	.mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES')." (remove otherwise)
 
   Current configuration (hardcoded in this script):
     D64LIST={d64list}
@@ -91,7 +91,7 @@ $readmefiles = "(00index|readme)";
 $arm_file = 0;
 $armed = 1;
 $args = 0;
-$max_files = 100;
+$max_files = 300;
 $verbose = false;
 $superverbose = false;
 $extsep = ".";

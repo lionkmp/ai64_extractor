@@ -2,6 +2,7 @@ Dir info file
 -------------
 
 00INDEX: rename to 00index.txt maybe?
+README: rename to README.txt
 
 Keeping TXT files
 ------------------
