@@ -55,7 +55,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 
   Example:
     Convert 'Games' folder for using with FuseCFS, keeps the process log:
-    ai64 -V -s , -u -t /mnt/rd Downloads/c64/Games games-fuse | tee games.txt
+    ai64 -V -x , -u -t /mnt/rd Downloads/c64/Games games-fuse | tee games.txt
 ";
 
 // Set this to empty string if you don't have d64list,c1541 or compatible
