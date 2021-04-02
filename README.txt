@@ -1,7 +1,7 @@
 ai64 - C64 file extractor 
 
-Copyright (c) 2004-2010 Ferenc 'Lion/Kempelen' Veres
-lion@xaraya.hu http://lion.xaraya.hu
+Copyright (c) 2004-2021 Ferenc 'Lion/Kempelen' Veres
+lion@c64.rulez.org http://lion.xaraya.hu
 
 WHAT IS THIS?
 
@@ -112,13 +112,16 @@ USAGE
 
 ai64.php [options] original_dir destination_dir
 
-    -s path/name    Skip to this file before staring processing
+    -s path/name    Skip to this source file before staring processing
                     (Use this to continue after something went wrong)
-    -x ,            Use ',' as file extension separator (default is '.')
+    -x ,            Use ',' as file extension separator (default '.')
+    -n 100          Number of maximum files per folder (default 300)
     -v              Verbose, list succesfully processed files
-    -w              Force windows compatible file naming
-    -u              Outputs IDE64 friendly unicode chars for ^ and others
-    -h              Print this help
+    -V              Super-verbose, also list archives while processing them
+    -w              Force windows compatible file naming (remove more chars)
+    -u              Enable unicode chars like ↑ ╱ ╲ (remove otherwise)
+    -t path         Temp dir for extractions (default '/tmp/[USER].ai64/')
+    -e err_handling Error handling, either 'ignore' (default), 'ask' or 'halt'.
 
 If ".php" is not registered to your PHP interpreter, you may need to type 
 "php ai64.php" instead, assuming php.exe is on your PATH.

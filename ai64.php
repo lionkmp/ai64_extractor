@@ -1,6 +1,6 @@
 #!/usr/bin/php
 <?php
-$version = "1.5alpha1";
+$version = "1.5";
 
 /*
     ai64 - C64 archive files batch extractor
@@ -25,7 +25,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 
   ai64 allows you to convert complete directory structures containing
   c64 wares into IDE64 compatible copy of the whole strucure, before 
-  burning a CD for C64/IDE64 usage. Read the README file for more info.
+  copying to HDD for C64/IDE64 usage. Read the README file for more info.
  
   Usage: ai64.php [options] original_dir destination_dir
   
@@ -40,13 +40,22 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 	.mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES')." "
 	.mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES')." "
 	.mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES')." (remove otherwise)
+    -t path         Temp dir for extractions (default '{tmpdir}')
+    -e err_handling Error handling, either 'ignore' (default), 'ask' or 'halt'.
 
+  To use ramdisk for extractions for fast operation:
+    sudo mkdir /mnt/rd
+    sudo mount -t tmpfs none /mnt/rd
+    sudo chown ".getenv('USER').":".getenv('USER')." /mnt/rd
+    
   Current configuration (hardcoded in this script):
     D64LIST={d64list}
     CBMCONVERT={cbmconvert}
     ARRPREFIX={arrprefix}
-    ERRORHALT={errorhalt}
-    tmp_dir={tmpdir}
+
+  Example:
+    Convert 'Games' folder for using with FuseCFS, keeps the process log:
+    ai64 -V -s , -u -t /mnt/rd Downloads/c64/Games games-fuse | tee games.txt
 ";
 
 // Set this to empty string if you don't have d64list,c1541 or compatible
@@ -59,14 +68,13 @@ $CBMCONVERT="cbmconvert";
 // Direcory prefix for ai100,ai200,ai300 subdirs when arranging to subfolders
 $ARRPREFIX="ai";
 
+// ------- end of config ------
+
 // Stop on archiver errors? Values: "halt", "ask" or "ignore".
 $ERRORHALT="ignore";
 
 // Creating extraction dirs below this one (see ramdisk hint in the readme)
-//$tmp_dir = '/tmp/'.getenv('USER').".ai64";
 $tmp_dir = '/tmp/'.getenv('USER').".ai64";
-
-// ------- end of config ------
 
 // Windows device names for file name validity check (regexp)
 $windevices = "(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]|CLOCK\\$)";
@@ -97,7 +105,7 @@ $superverbose = false;
 $extsep = ".";
 $unicode = false;
 
-$opts = getopt("vVhn:s:x:wu");
+$opts = getopt("vVhn:s:x:wut:e:");
 
 // Help?
 if(isset($opts['h'])) {
@@ -118,6 +126,23 @@ if(isset($opts['s'])) {
 if(isset($opts['x'])) {
 	$extsep = $opts['x'];
 	$args += 2; // Eat -x and value
+}
+
+// Temp dir
+if(isset($opts['t'])) {
+	$tmp_dir = $opts['t'];
+	$args += 2; // Eat -t and value
+}
+
+// Error handling
+if(isset($opts['e'])) {
+	$ERRORHALT = $opts['e'];
+	switch($ERRORHALT) {
+		case "i": $ERRORHALT='ignore'; break;
+		case "h": $ERRORHALT='halt'; break;
+		case "a": $ERRORHALT='ask'; break;
+	}
+	$args += 2; // Eat -t and value
 }
 
 // Number of files for rearrange
@@ -165,7 +190,13 @@ $dest_dir = $argv[$argc-1];
 // Check source dir
 if (!is_dir($source_dir))
 {
-	echo "ai64: source directory does not exist: $source_dir.\n";
+	echo "ai64: source directory does not exist: $source_dir.\n\n";
+	exit(1);
+}
+// Check parameters
+if($ERRORHALT != "ignore" && $ERRORHALT != "halt" && $ERRORHALT != "ask") {
+	echo "ai64: Invalid error handling value: '$ERRORHALT'\n";
+	echo "      Valid values are 'ignore', 'halt', 'ask'.\n\n";
 	exit(1);
 }
 
@@ -1243,12 +1274,12 @@ function normalize_name($file, $index = 0)
 	// No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)
 	{
-		$file = substr($nameonly, 0, 16) . $extsep . $lext;
+		$file = mb_substr($nameonly, 0, 16) . $extsep . $lext;
 		return($file);
 	}
 
 	// Cut the name, make space for extension and index) (15 => place for "-")
-	$file = substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
+	$file = mb_substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
 	return($file);
 }
 
@@ -1297,12 +1328,11 @@ function normalize_fixchars($file)
 	// Remove non-ascii chars
 	$file = preg_replace('/[^\x20-\x7e]+/',' ',$file);
 
-	// Remove invalid characters * : = / and ? (According to Soci, plus comma, ^, \\)
-	if(!$unicode) {
-		$file = preg_replace('/[\*:=\?,\/\\\\^]/','.',$file);
-	} else {
-		$file = preg_replace('/[\*:=\?,]/','.',$file);
-	}
+	// Lowercase all names
+	$file = strtolower($file);
+
+	// Remove invalid characters * : = / and ? (According to Soci, plus comma, \\)
+	$file = preg_replace('/[\*:=\?,\\\\]/','.',$file);
 
 	// Replace some fusecfs unfriendly chars
 	$file = str_replace('{', '[', $file);
@@ -1312,20 +1342,26 @@ function normalize_fixchars($file)
 
 	// With unicode support keep these chars
 	if($unicode) {
-		$file = str_replace('^', mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES'), $file);
-		$file = str_replace('\\', mb_convert_encoding('&#x2572;', 'UTF-8', 'HTML-ENTITIES'), $file);
-		$file = str_replace('|', mb_convert_encoding('&#x2502;', 'UTF-8', 'HTML-ENTITIES'), $file);
-		$file = str_replace('/', mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES'), $file);
+		$file = str_replace('/', mb_convert_encoding('&#x2215;', 'UTF-8', 'HTML-ENTITIES'), $file); // 2f - division slash
+		$file = str_replace('^', mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES'), $file); // 5e - upwards arrow
+		//$file = str_replace('????', mb_convert_encoding('&#x2190;', 'UTF-8', 'HTML-ENTITIES'), $file); // $5f - leftwards arrow (need c1541 support)
+		$file = str_replace('|', mb_convert_encoding('&#x2502;', 'UTF-8', 'HTML-ENTITIES'), $file); // dd - box drawings light vertical
+	} else {
+		// Remove unicode capable chars if no unicode
+		$file = preg_replace('/[\/^|]/','.',$file);
 	}
+	// --WARNING--
+	// Use only mb_ safe routines from this point!
 
 	if($is_windows)
 	{
 		// More invalid characters on windows '<', '>', '\\', '/', ':', '"', '|', '?', '*'
-		$file = preg_replace('/[<>\\:\/"|\?\*]+/', '.', $file);
+		$file = mb_ereg_replace('[<>\\:\/"|\?\*]+', '.', $file);
 	}
 	
-	// Lowercase, trim it
-	return trim(strtolower($file));  // normalize_spacing() is also called later!
+	// Trim it
+	$file = mb_ereg_replace('^ *(.*) *$', '\1', $file);
+	return $file;  // normalize_spacing() is also called later!
 }
 
 // Truncate leading and trailling dots and spaces
@@ -1333,11 +1369,12 @@ function normalize_fixchars($file)
 function normalize_spacing($file)
 {
 	// Reduce multiple spaces and dots to a single
-	$file = preg_replace('/  */', ' ', $file);
-	$file = preg_replace('/\.\.*/', '.', $file);
+	$file = mb_ereg_replace('  *', ' ', $file);
+	$file = mb_ereg_replace('\.\.*', '.', $file);
 
 	// Trim dot and space
-	return trim($file, " .");
+	$file = mb_ereg_replace('^[\. ]*(.*)[\. ]*$', '\1', $file);
+	return $file;
 }
 
 /*** RENAME DIRS TO FIT ON IDE64 ***/
@@ -1447,7 +1484,8 @@ function arrange_files($dir)
 		$dirpart = "";
 
 		// Process all files here
-		for ($i = 0; $i < $filesnum; $i++)
+		$i = 0;
+		foreach($files_here as $file_here)
 		{
 			// What is the /$max_files part of this (to see if we must open new dir for this file)
 			$currdir = (int) ($i/$max_files) * $max_files; // + $max_files;
@@ -1456,7 +1494,7 @@ function arrange_files($dir)
 			if ($currdir != $lastdir)
 			{
 				// Take first part of the current file's name for new dir's name
-				$dirpart = preg_replace('/^([a-z0-9]*).*$/i', '$1', $files_here[$i]);
+				$dirpart = preg_replace('/^([a-z0-9]*).*$/i', '$1', $file_here);
 				$dirpart = "-".substr($dirpart, 0, 16 - strlen($ARRPREFIX) - strlen($currdir));
 				
 				// Create new dir e.g. "ai500-bubble". 
@@ -1468,8 +1506,9 @@ function arrange_files($dir)
 				}
 				$lastdir = $currdir;
 			}
-			$target = "$dir/$ARRPREFIX$currdir$dirpart/$files_here[$i]";
-			rename("$dir/$files_here[$i]", $target);
+			$target = "$dir/$ARRPREFIX$currdir$dirpart/$file_here";
+			rename("$dir/$file_here", $target);
+			$i++;
 
 			// Recurse into moved subdirs
 			if(is_dir($target)) {
