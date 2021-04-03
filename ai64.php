@@ -55,7 +55,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
 
   Example:
     Convert 'Games' folder for using with FuseCFS, keeps the process log:
-    ai64 -V -x , -u -t /mnt/rd Downloads/c64/Games games-fuse | tee games.txt
+    ai64 -V -x , -u -t /mnt/rd Downloads/Games games-fuse 2>&1 | tee games.txt
 ";
 
 // Set this to empty string if you don't have d64list,c1541 or compatible
@@ -90,7 +90,7 @@ $is_windows = (strpos(strtolower(php_uname('s')), "windows") === 0);
 // PC Images: jpg, jpeg, png, gif
 // PC Data: .db (thumbs), .ini (desktop)
 // "." one letter extensions like ".c" , that fails to copy to IDE64 CFS ("invalid argument")
-$skiptypes = "(txt|diz|me|nfo|com|exe|del|dir|lnk|rel|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini|.)";
+$skiptypes = "(diz|me|nfo|com|exe|del|dir|lnk|rel|avi|mpg|mpeg|pdf|doc|djvu|png|jpg|jpeg|gif|db|ini|.)";
 
 // Extensionless readme files (not copied)
 $readmefiles = "(00index|readme)";
@@ -610,7 +610,7 @@ function process_file_rar($dir,$file,$dest_dir)
 	// unrar-nonfree is used here. unrar-free cannot do RAR 3.0
 	// "unar" could be used with -D -q
 
-	system("unrar x $superverbose $shellfile $workdir/",$ret);
+	system("unrar x $opt $shellfile $workdir/",$ret);
 
 	if ($ret != 0)
 	{
