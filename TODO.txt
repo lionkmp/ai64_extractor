@@ -196,3 +196,14 @@ ai64: Processing /mnt/rd/lion2.ai64/ai64t64-106/the wall#    -r-.prg
 ai64: Saving: /mnt/rd/lion2.ai64/ai64t64-106/the wall#    -r-.prg to tdd-games-v/t/the wall# -r-,prg
 ai64: Processing /mnt/rd/lion2.ai64/ai64t64-106/the wall+    -r-.prg
 ai64: Saving: /mnt/rd/lion2.ai64/ai64t64-106/the wall+    -r-.prg to tdd-games-v/t/the wall+ -r-,prg
+
+
+EXAMPLE errors
+--------------
+Archive:  Xlcus_News_02.zip
+    testing: XL.C.US NEWS #02         OK
+No errors detected in compressed data of Xlcus_News_02.zip.
+
+Results in:
+cp: cannot create regular file './tdd-mags-fuse/xlcus_news/xl.c,us ': Invalid argument
+--------------------
