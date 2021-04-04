@@ -1,4 +1,4 @@
-ai64 - C64 file extractor 
+ai64_extractor - C64 file extractor
 
 Copyright (c) 2004-2021 Ferenc 'Lion/Kempelen' Veres
 lion@c64.rulez.org http://lion.xaraya.hu
@@ -7,7 +7,7 @@ WHAT IS THIS?
 
 ai64 allows you to comvert complete directory structures containing
 c64 programs into IDE64 compatible copy of the whole strucure. e.g.
-try running it on a complete copy of Arnold Game Archive, before 
+try running it on a complete copy of Digital Dungeon FTP Archive, before
 burning a CD for IDE64 usage. Most of the archive will be converted to 
 .prg and .d64 files, which are very easly to use on C64!
 
@@ -42,35 +42,48 @@ d64list [Not needed if you use Vice c1541]
 
 WHAT DOES IT DO?
 
-The program will walk recursively in the sepcified source directory, 
-convert all files to c64 usable format and copy them into the destination
-directory structure. Thus from all your ZIP, T64, etc files, you will 
-just have a big directory which is directly usable on your IDE64 CDROM.
+The program will process a complete directory of C64 files
+convert all files to c64 usable format and copy them into a destination
+directory structure. Thus from all your ZIP, TGZ, etc files, you will
+get a big directory directly usable on your IDE64 or via PCLink cable,
+SD card readers, pendrive compatible cards like 1541 Ultimate, or on
+Ultimate 64 or a C64 Emulator.
 
 Currently the following formats are handled (anything can be nested, 
-e.g. d64 in zip and so on):
+e.g. a single prg in a d64 in a zip):
 
-TXT: not copied
-DIZ: not copied
-ME:  not copied
-NFO: not copied
-COM: not copied
-EXE: not copied
-DEL: not copied (D64 extraction dirt)
-ZIP: uncompressed and re-processed 
-D64: extraced if 1 file only and BAM is valid. Hi-score
-     files - if identified - are ignored if there is only 1 more file. Some
-     BAM validation messages in names/headers are taken into consideration.
+C64 files:
+D64: extraced if 1 file only and BAM is valid. Kept as D64 otherwise.
+     Hi-score files (if identified) are ignored if there is only 1 more file.
+     Some BAM validation messages in names/header are taken into consideration.
 T64: extraced to files (if there is a single file named "FILE" is inside, 
      the name of the original t64 is used when saving it to prg.)
 P00: extracted to normal files
 PRG: copied as is
+
+Compressed files:
+ZIP: extracted and re-processed
 TAR: extracted and re-processed
 GZ : extracted and re-processed
 TGZ: extracted and re-processed
 RAR: extracted and re-processed
 LNX: converted to d64 and re-processed
 ZIPCODE: (1!,2!..) converted to d64 and re-processed
+
+Not copied (not usable on C64):
+TXT (also extensionless README, 00INDEX)
+DIZ, ME, NFO
+COM, EXE
+AVI, MPG, MPEG
+PDF, DOC, DJVU
+PNG, JPG, JPEG, GIF
+DB
+INI
+C and any one letter extension (causes error with FuseCFS)
+DEL (D64 extraction dirt)
+DIR (IDE64 dir type, cannot be copied)
+LNK (cannot be copied to IDE64)
+REL (cannot be copied to IDE64)
 
 Files starting with dot are not copied (Unix hidden files, FTP site messages).
 
@@ -84,9 +97,9 @@ Filenames are converted to 16 + extension, IDE64 can handle this length
 overwritten, the new file will get "-1", "-2".. index, thus running the
 program twice will create all destination files twice.
 
-When the whole directory structure conversion is finished, ai64 will take
-another long walk. It will rearrange all the directories which contain 
-more than 100 files, to make sure there are no more than 100 files in a
+When the whole directory structure conversion is finished, ai64 will make
+another process. It will rearrange all the directories which contain 
+more than 300 files, to make sure there are no more than 300 files in a
 directory (easier to handle on c64, MAN, etc). The created subdirs will
 be called "ai100-X", "ai200-X" and so on, where "X" means the first word
 of the first program in that dirctory. E.g. "ai300-blackjack".
@@ -97,7 +110,7 @@ Edit ai64 executable file if necessary:
 1. Customize the location of your php interpreter in the first line. 
 2. Set the location of your d64list program or set it to empty string to 
    bypass analizig d64 contents. 
-3. Make sure the $tmp_dir is far from any important locations, because the
+3. Make sure the -t tmp_dir is far from any important locations, because the
    program will run thousands of "rm -rf" commands inside it (honestly, I 
    create a "lion2" user just to run the program, you never know... 
    especially while developing it.) See ramdisk tip below.
@@ -125,8 +138,6 @@ ai64.php [options] original_dir destination_dir
 
 If ".php" is not registered to your PHP interpreter, you may need to type 
 "php ai64.php" instead, assuming php.exe is on your PATH.
-
-The conversion process of one CD (600 MB) takes a lot of time.
 
 There is no warranty of any kind. So I advice again, to create a temporary
 user which cannot write your home directory, and run the whole conversion by
@@ -174,8 +185,10 @@ chown lion2:lion2 /mnt/rd
 
 2. Logging the errors
 
-There is no option in the program to log the error messages, but it is very simple
-using standard Unix tool, "tee" (-a is for append, if needed).
+There is no option in the program to log the error messages, but it is very
+simple using standard Unix tool, "tee" (-a is for append, if needed). This
+will also help to find where some buggy files originated from and fix
+errors in your original archive dirs.
 
 ai64.php orig_dir dest_dir 2>&1 | tee -a errorlog.txt
 
@@ -196,6 +209,7 @@ LICENSE
 
 CONTACT
 
-Feedback and patches are welcomed on lion@xaraya.hu. For updates look at my
-homepage http://lion.xaraya.hu.
+Feedback and patches are welcome on lion@c64.rulez.org.
+Source code on GitHub: https://github.com/lionkmp/ai64_extractor/
+Find my converted c64 downloads on my blog: https://lion.xaraya.hu/
 

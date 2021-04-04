@@ -1,6 +1,15 @@
-********************
-** ai64 ChangeLog **
-********************
+******************************
+** ai64_exctrator ChangeLog **
+******************************
+
+  1.6 (2021/04/04)
+        Change default to 300 files/dir.
+        Fixes to unicode support (use mb_* routines where necessary).
+        Fix errors in natsort() natural sorting implementation.
+        Fix an error in invoking unrar.
+        Unicode "\" is now incomatible with FuseCFS, removed.
+        Add -t switch to set temp dir.
+        Add -e switch to control error handling behavior.
 
   1.5 (2019/09/09)
   		Update to PHP 7.x
