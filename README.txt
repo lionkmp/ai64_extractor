@@ -1,7 +1,7 @@
 ai64_extractor - C64 file extractor
 
 Copyright (c) 2004-2021 Ferenc 'Lion/Kempelen' Veres
-lion@c64.rulez.org http://lion.xaraya.hu
+lion@c64.rulez.org https://lion.xaraya.hu
 
 WHAT IS THIS?
 
@@ -16,8 +16,8 @@ SYSTEM REQUIREMENTS
 PHP-CLI
     Which makes it possible to run PHP programs from the command line.
 Linux/Unix
-	Tested on Linux only. Windows compatible filename generation is now 
-	supported, Windows platform support is planned (never tested).
+    Tested on Linux only. Windows compatible filename generation is now 
+    supported, Windows platform support is planned (never tested).
 unzip
     Command line unzip to decompress the files.
 unrar
@@ -28,17 +28,17 @@ gzip
     Command line gzip to decompress the files.
 zip2disk
     Zipcode to d64 converter by Marko Makela. 
-    ftp://c64.rulez.org/pub/c64/other-OS/Unix
+    https://c64.rulez.org/pub/c64/other-OS/Unix
 cbmconvert
     Marko Makela's converter masterpiece to handle all the c64 file formats
-	(tested with v2.1.2).
+    (tested with v2.1.2).
     ftp://ftp.zimmers.net/pub/cbm/crossplatform/converters/unix
 c1541
-	Command line utility, part of Vice emulator (tested with v2.2).
-	http://www.viceteam.org/
+    Command line utility, part of Vice emulator (tested with v2.2).
+    https://vice-emu.sourceforge.io/
 d64list [Not needed if you use Vice c1541]
     This is a little C program I made years ago, included in ai64 download.
-    ftp://c64.rulez.org/pub/c64/other-OS/Unix/
+    https://c64.rulez.org/pub/c64/other-OS/Unix/
 
 WHAT DOES IT DO?
 
@@ -132,7 +132,7 @@ ai64.php [options] original_dir destination_dir
     -v              Verbose, list succesfully processed files
     -V              Super-verbose, also list archives while processing them
     -w              Force windows compatible file naming (remove more chars)
-    -u              Enable unicode chars like ↑ ╱ ╲ (remove otherwise)
+    -u              Enable unicode chars like ↑ | (remove otherwise)
     -t path         Temp dir for extractions (default '/tmp/[USER].ai64/')
     -e err_handling Error handling, either 'ignore' (default), 'ask' or 'halt'.
 
@@ -148,7 +148,7 @@ Examples
 ai64.php -x , -v -w c64/Demos c64stuff
 
   Converts with comma as extension separator, windows compatible file names.
-  Useful when copying to HD using FuseCFS (http://singularcrew.hu/idedos/).
+  Useful when copying to HD using FuseCFS (https://singularcrew.hu/idedos/).
 
 ai64.php downloadedwares coolwares
 
@@ -205,7 +205,7 @@ LICENSE
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 CONTACT
 
