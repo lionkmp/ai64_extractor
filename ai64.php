@@ -1220,7 +1220,7 @@ function normalize_name($file, $index = 0)
 	$file = normalize_fixchars($file);
 	
 	// Get last extension ("." and "," are both separators)
-	$nameparts = preg_split('/[\.,]/',$file);
+	$nameparts = mb_split('[\.,]',$file);
 
 	// If no extension, use .prg
 	if (count($nameparts) == 1)
@@ -1231,10 +1231,11 @@ function normalize_name($file, $index = 0)
 	else
 	{
 		$lext = $nameparts[count($nameparts)-1];
-		$nameonly = substr($file,0,strlen($file)-strlen($lext)-1);
+		$nameonly = mb_substr($file,0,strlen($file)-strlen($lext)-1);
 	}
 
 	// If the extension is invalid (according to Soci) add .prg!
+	// FIXME: this is no-op here, because these are on the "skip list"
 	if ($lext == "s" || $lext == "p" || $lext == "d" || $lext == "u" ||
 		$lext == "l" || $lext == "b" || $lext == "j" || $lext == "a" ||
 		$lext == "dir" || $lext == "lnk" || $lext == "rel" || $lext == "del" || $lext == "")
@@ -1244,19 +1245,19 @@ function normalize_name($file, $index = 0)
 	}
 
 	// Truncate long extension
-	$lext = substr($lext,0,3);
+	$lext = mb_substr($lext,0,3);
 
 	if($is_windows)
 	{
 		// Match device name ("PRN", "PRN.txt").
-		if(preg_match("/^".$windevices."$/i", $nameonly))
+		if(mb_ereg_match("^".$windevices."$", $nameonly, "i"))
 		{
 			$nameonly .= "win"; // Devices are short, so this will fit in 16
 		}
 		
 		// Disallow filename ending with "."
-		$nameonly = preg_replace('/\.+$/', '', $nameonly);
-		$lext = preg_replace('/\.+$/', '', $lext);
+		$nameonly = mb_ereg_replace('\.+$', '', $nameonly);
+		$lext = mb_ereg_replace('\.+$', '', $lext);
 	}
 	
 	$nameonly = normalize_spacing($nameonly);
@@ -1293,13 +1294,13 @@ function normalize_dirname($dir, $index = 0)
 	if($is_windows)
 	{
 		// Match device name ("PRN"..).
-		if(preg_match("/^".$windevices."$/i", $dir))
+		if(mb_ereg_match("^".$windevices."$", $dir, "i"))
 		{
 			$dir .= "win"; // Devices are short, so this will fit in 16
 		}
 		
 		// Disallow filename ending with "."
-		$dir = preg_replace('/\.+$/', '', $dir);
+		$dir = mb_ereg_replace('\.+$', '', $dir);
 	}
 	
 	$dir = normalize_spacing($dir);
@@ -1313,11 +1314,11 @@ function normalize_dirname($dir, $index = 0)
 	// No indexing requested, just cut the name
 	if ($index == 0)
 	{
-		return substr($dir, 0, 16);
+		return mb_substr($dir, 0, 16);
 	}
 
 	// Cut the name, make space for index (15 => place for "-")
-	return substr($dir, 0, 15 - strlen($index)) . "-" . $index;
+	return mb_substr($dir, 0, 15 - mb_strlen($index)) . "-" . $index;
 }
 
 // Replace or remove not allowed filename characters
@@ -1360,7 +1361,7 @@ function normalize_fixchars($file)
 	}
 	
 	// Trim it
-	$file = mb_ereg_replace('^ *(.*) *$', '\1', $file);
+	$file = mb_ereg_replace('^ *(.*?) *$', '\1', $file);
 	return $file;  // normalize_spacing() is also called later!
 }
 
@@ -1373,7 +1374,8 @@ function normalize_spacing($file)
 	$file = mb_ereg_replace('\.\.*', '.', $file);
 
 	// Trim dot and space
-	$file = mb_ereg_replace('^[\. ]*(.*)[\. ]*$', '\1', $file);
+	$file = mb_ereg_replace('^[\. ]*(.*?)[\. ]*$', '\1', $file);
+	echo "TRIM:".$file.":";
 	return $file;
 }
 
@@ -1409,26 +1411,28 @@ function rename_dirs_recursive($dir, $topdir)
 	// Don't rename conversion destination	
 	if(!$topdir)
 	{
-		// path[1] is parent + /, path[2] is the currnent dir name
-		preg_match("/^(.*\/)(.*)$/", $dir, $path);
+		// Split at last "/", parent_path will keep the trailling "/".
+		$pos = mb_strrpos($dir, "/");
+		$parent_path = mb_substr($dir, 0, $pos + 1);
+		$current_dir = mb_substr($dir, $pos + 1);
 		
-		$normalname = normalize_dirname($path[2]);
+		$normalname = normalize_dirname($current_dir);
 		
 		// Renaming needed?
 		if($normalname != $path[2])
 		{
 			// If destination file already exists, make DOS ~1 indexing :-)
-			for ($i = 1; is_file($path[1].$normalname) || is_dir($path[1].$normalname); $i++)
+			for ($i = 1; is_file($parent_path.$normalname) || is_dir($parent_path.$normalname); $i++)
 			{
-				$normalname = normalize_dirname($path[2], $i);
+				$normalname = normalize_dirname($current_dir, $i);
 			}
 			
 			if($verbose)
 			{
-				echo("ai64: Rename dir: $dir ---> ".$path[1].$normalname."\n");
+				echo("ai64: Rename dir: $dir ---> ".$parent_path.$normalname."\n");
 			}
 			
-			rename($dir, $path[1].$normalname);
+			rename($dir, $parent_path.$normalname);
 		}
 	}
 }
@@ -1493,9 +1497,9 @@ function arrange_files($dir)
 			// Create the dir if not yet done
 			if ($currdir != $lastdir)
 			{
-				// Take first part of the current file's name for new dir's name
-				$dirpart = preg_replace('/^([a-z0-9]*).*$/i', '$1', $file_here);
-				$dirpart = "-".substr($dirpart, 0, 16 - strlen($ARRPREFIX) - strlen($currdir));
+				// Take first word of the current file's name for new dir's name
+				$dirpart = mb_ereg_replace('^([a-zA-Z0-9]*).*$', '$1', $file_here);
+				$dirpart = "-".mb_substr($dirpart, 0, 16 - mb_strlen($ARRPREFIX) - mb_strlen($currdir));
 				
 				// Create new dir e.g. "ai500-bubble". 
 				echo "Make dir: $dir/$ARRPREFIX$currdir$dirpart\n";
@@ -1525,48 +1529,4 @@ function arrange_files($dir)
 	}
 
 }
-
-/* *********************
-** ai64 KNOWLEGE BASE **
-************************
-
-About file extensions:
-----------------------
->> Hi!
->>
->> Soci/Singular wrote:
->>
->
->>>> >>Yep, I should check the docs, but if I recall right, the new IDE64 DOS
->>>> >>handles 16+3 filenames on ISO fine, is that true? (Just to fix my batch
->>>> >>converter from 16 total (12+dot+ext). So will 16+dot+3 work fine? Any
->>>> >>custom extension? 3 chars of extension?)
->>
->>> >
->>> >
->>> > 16+dot+3 works fine. Do not use ,s ,p ,d ,u ,l ,b ,j ,a ,dir ,lnk ,rel
->>> > ,del as extensions. Also 20041222 still reserves ,c and ,cbm but that's
->>> > fixed in later versions.
->
->>
->> ","?? Comma? Where? Nowhere inside the filename? What if there is a
->> ",shit" in the filename? Is that problem when reading the ISO or Joliet?
->> What do you mean on all these commas spearated stuff? (I know, that OPEN
->> uses these, but do I have to avoid then on CD too? Then it would be
->> better to completely replace "," with ".".
->>
->> Or did you mean ".s" ".p" ".d", etc? Unless the original archive has
->> such files (unlikely), my program will not write out such files. I save
->> "unknown" files as-is!
-
-
-"." and "," is equivalent for the CD filesystem when used as the delimiter
-for the filetype. If you save a a.s.basketball.prg then it will be
-"a.s.basketball" with type "prg". Like a,seq will be "a" with type "seq".
-I forgot to say that do not use * : = / and ? in filenames. Yes of course
-I meant "code.s" as an illegal name, but "code.s,seq", "code.s.seq",
-"code.seq" or "code,seq" is correct
-----------------------
-
-*/
 ?>
