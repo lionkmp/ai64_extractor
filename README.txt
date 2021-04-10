@@ -5,11 +5,11 @@ lion@c64.rulez.org https://lion.xaraya.hu
 
 WHAT IS THIS?
 
-ai64 allows you to comvert complete directory structures containing
-c64 programs into IDE64 compatible copy of the whole strucure. e.g.
+ai64 allows you to convert complete directory structures containing
+c64 programs into IDE64 compatible copy of the whole structure. e.g.
 try running it on a complete copy of Digital Dungeon FTP Archive, before
 burning a CD for IDE64 usage. Most of the archive will be converted to 
-.prg and .d64 files, which are very easly to use on C64!
+.prg and .d64 files, which are very easy to use on C64!
 
 SYSTEM REQUIREMENTS
 
@@ -53,10 +53,10 @@ Currently the following formats are handled (anything can be nested,
 e.g. a single prg in a d64 in a zip):
 
 C64 files:
-D64: extraced if 1 file only and BAM is valid. Kept as D64 otherwise.
+D64: extracted if 1 file only and BAM is valid. Kept as D64 otherwise.
      Hi-score files (if identified) are ignored if there is only 1 more file.
      Some BAM validation messages in names/header are taken into consideration.
-T64: extraced to files (if there is a single file named "FILE" is inside, 
+T64: extracted to files (if there is a single file named "FILE" is inside,
      the name of the original t64 is used when saving it to prg.)
 P00: extracted to normal files
 PRG: copied as is
@@ -102,14 +102,14 @@ another process. It will rearrange all the directories which contain
 more than 300 files, to make sure there are no more than 300 files in a
 directory (easier to handle on c64, MAN, etc). The created subdirs will
 be called "ai100-X", "ai200-X" and so on, where "X" means the first word
-of the first program in that dirctory. E.g. "ai300-blackjack".
+of the first program in that directory. E.g. "ai300-blackjack".
 
 INSTALLATION
 
 Edit ai64 executable file if necessary: 
 1. Customize the location of your php interpreter in the first line. 
 2. Set the location of your d64list program or set it to empty string to 
-   bypass analizig d64 contents. 
+   bypass analyzing d64 contents.
 3. Make sure the -t tmp_dir is far from any important locations, because the
    program will run thousands of "rm -rf" commands inside it (honestly, I 
    create a "lion2" user just to run the program, you never know... 
@@ -129,7 +129,7 @@ ai64.php [options] original_dir destination_dir
                     (Use this to continue after something went wrong)
     -x ,            Use ',' as file extension separator (default '.')
     -n 100          Number of maximum files per folder (default 300)
-    -v              Verbose, list succesfully processed files
+    -v              Verbose, list successfully processed files
     -V              Super-verbose, also list archives while processing them
     -w              Force windows compatible file naming (remove more chars)
     -u              Enable unicode chars like ↑ | (remove otherwise)
@@ -152,7 +152,7 @@ ai64.php -x , -v -w c64/Demos c64stuff
 
 ai64.php downloadedwares coolwares
 
-  Convers with dot as separator. Linux file naming conventions.
+  Converts with dot as separator. Linux file naming conventions.
   Useful when burning a CD for use with IDE64.
 
 TIPS
