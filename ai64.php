@@ -1375,7 +1375,6 @@ function normalize_spacing($file)
 
 	// Trim dot and space
 	$file = mb_ereg_replace('^[\. ]*(.*?)[\. ]*$', '\1', $file);
-	echo "TRIM:".$file.":";
 	return $file;
 }
 
@@ -1419,7 +1418,7 @@ function rename_dirs_recursive($dir, $topdir)
 		$normalname = normalize_dirname($current_dir);
 		
 		// Renaming needed?
-		if($normalname != $path[2])
+		if($normalname != $current_dir)
 		{
 			// If destination file already exists, make DOS ~1 indexing :-)
 			for ($i = 1; is_file($parent_path.$normalname) || is_dir($parent_path.$normalname); $i++)
