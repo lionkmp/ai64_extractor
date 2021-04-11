@@ -1497,7 +1497,7 @@ function arrange_files($dir)
 			if ($currdir != $lastdir)
 			{
 				// Take first word of the current file's name for new dir's name
-				$dirpart = mb_ereg_replace('^([a-zA-Z0-9]*).*$', '$1', $file_here);
+				$dirpart = mb_ereg_replace('^([a-zA-Z0-9]*).*$', '\1', $file_here);
 				$dirpart = "-".mb_substr($dirpart, 0, 16 - mb_strlen($ARRPREFIX) - mb_strlen($currdir));
 				
 				// Create new dir e.g. "ai500-bubble". 
