@@ -36,6 +36,8 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     -v              Verbose, list succesfully processed files
     -V              Super-verbose, also list archives while processing them
     -w              Force windows compatible file naming (remove more chars)
+    -l 16           Limit non-standard files' name length (default 16, w/o ext)
+    -L 16           Limit standard files' name length (default 16) (PRG, SEQ..)
     -u              Enable unicode chars like "
 	.mb_convert_encoding('&#x2191;', 'UTF-8', 'HTML-ENTITIES')." "
 	.mb_convert_encoding('&#x2571;', 'UTF-8', 'HTML-ENTITIES')." "
@@ -104,8 +106,10 @@ $verbose = false;
 $superverbose = false;
 $extsep = ".";
 $unicode = false;
+$std_length = 16; // Filename limit for PRG, SEQ, REL, USR (sd2iec may need 12 in XE- mode)
+$non_std_length = 16; // Filename limit for others than PRG, SEQ, REL, USR (sd2iec needs 12)
 
-$opts = getopt("vVhn:s:x:wut:e:");
+$opts = getopt("vVhn:s:x:l:L:wut:e:");
 
 // Help?
 if(isset($opts['h'])) {
@@ -126,6 +130,16 @@ if(isset($opts['s'])) {
 if(isset($opts['x'])) {
 	$extsep = $opts['x'];
 	$args += 2; // Eat -x and value
+}
+
+// Files' name length limit
+if(isset($opts['l'])) {
+	$non_std_length = $opts['l'];
+	$args += 2; // Take option and value
+}
+if(isset($opts['L'])) {
+	$std_length = $opts['L'];
+	$args += 2; // Take option and value
 }
 
 // Temp dir
@@ -197,6 +211,14 @@ if (!is_dir($source_dir))
 if($ERRORHALT != "ignore" && $ERRORHALT != "halt" && $ERRORHALT != "ask") {
 	echo "ai64: Invalid error handling value: '$ERRORHALT'\n";
 	echo "      Valid values are 'ignore', 'halt', 'ask'.\n\n";
+	exit(1);
+}
+if(!is_numeric($std_length)) {
+	echo "ai64: Invalid name length limit (-L) value: $std_length.\n\n";
+	exit(1);
+}
+if(!is_numeric($non_std_length)) {
+	echo "ai64: Invalid name length limit (-l) value: $non_std_length.\n\n";
 	exit(1);
 }
 
@@ -1220,18 +1242,12 @@ function normalize_name($file, $index = 0)
 	$file = normalize_fixchars($file);
 	
 	// Get last extension ("." and "," are both separators)
-	$nameparts = mb_split('[\.,]',$file);
+	list($nameonly, $lext) = mb_split_extension($file, true);
 
 	// If no extension, use .prg
-	if (count($nameparts) == 1)
+	if ($lext === "")
 	{
 		$lext = "prg";
-		$nameonly = $file;
-	}
-	else
-	{
-		$lext = $nameparts[count($nameparts)-1];
-		$nameonly = mb_substr($file,0,strlen($file)-strlen($lext)-1);
 	}
 
 	// If the extension is invalid (according to Soci) add .prg!
@@ -1272,15 +1288,17 @@ function normalize_name($file, $index = 0)
 		$lext == 'prg';
 	}
 
+	$namelimit = get_namelimit($lext);
+
 	// No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)
 	{
-		$file = mb_substr($nameonly, 0, 16) . $extsep . $lext;
+		$file = mb_substr($nameonly, 0, $namelimit) . $extsep . $lext;
 		return($file);
 	}
 
-	// Cut the name, make space for extension and index) (15 => place for "-")
-	$file = mb_substr($nameonly, 0, 15 - strlen($index)) . "-" . $index . $extsep . $lext;
+	// Cut the name, make space for extension and index) (-1 => place for "-")
+	$file = mb_substr($nameonly, 0, $namelimit - 1 - strlen($index)) . "-" . $index . $extsep . $lext;
 	return($file);
 }
 
@@ -1376,6 +1394,56 @@ function normalize_spacing($file)
 	// Trim dot and space
 	$file = mb_ereg_replace('^[\. ]*(.*?)[\. ]*$', '\1', $file);
 	return $file;
+}
+
+// Split filename and extension in a multibyte string safe manner
+// Allows dot separator always, and comma separator optionally
+// Returns an array: name and extension (extension may be empty string)
+function mb_split_extension($file, $allowcomma = false) {
+
+	// Get last extension (either with dot or comma separator, whichever is shorter)
+	$pos = mb_strrpos($file, ".");
+	if ($allowcomma)
+	{
+		$pos_comma = mb_strrpos($file, ",");
+		if($pos_comma !== false)
+		{
+			$pos = ($pos > $pos_comma ? $pos : $pos_comma);
+		}
+	}
+	if ($pos === false)
+	{
+		return array($file, "");
+	}
+	else
+	{
+		return array(mb_substr($file, 0, $pos), mb_substr($file, $pos + 1));
+	}
+}
+
+// Get configured file name length limit for this specific exteions
+// Standard CBM extensions (prg, usr, seq, rel) may need different
+// limit, because SD2IEC allows 16 chars in those in XE+ mode.
+// While all non-standard extensions will be PRG files and
+//  must fit in the 16 with the extension too!
+function get_namelimit($ext) {
+
+	global $std_length, $non_std_length;
+
+	// If no extension, use .prg
+	if ($ext === "")
+	{
+		$ext = "prg";
+	}
+	$ext = mb_strtolower($ext);
+	if ($ext == "prg" || $ext == "seq" || $ext == "rel" || $ext == "usr")
+	{
+		return $std_length;
+	}
+	else
+	{
+		return $non_std_length;
+	}
 }
 
 /*** RENAME DIRS TO FIT ON IDE64 ***/
