@@ -1358,6 +1358,7 @@ function normalize_fixchars($file)
 	$file = str_replace('}', ']', $file);
 	$file = str_replace('`', '\'', $file);
 	$file = str_replace('~', '-', $file);
+	$file = str_replace('_', ' ', $file);
 
 	// With unicode support keep these chars
 	if($unicode) {
