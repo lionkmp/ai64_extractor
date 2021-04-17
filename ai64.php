@@ -1293,12 +1293,12 @@ function normalize_name($file, $index = 0)
 	// No indexing requested, just cut the name (make place for extenstion)
 	if ($index == 0)
 	{
-		$file = mb_substr($nameonly, 0, $namelimit) . $extsep . $lext;
+		$file = mb_trim(mb_substr($nameonly, 0, $namelimit), true) . $extsep . $lext;
 		return($file);
 	}
 
 	// Cut the name, make space for extension and index) (-1 => place for "-")
-	$file = mb_substr($nameonly, 0, $namelimit - 1 - strlen($index)) . "-" . $index . $extsep . $lext;
+	$file = mb_trim(mb_substr($nameonly, 0, $namelimit - 1 - strlen($index)), true) . "-" . $index . $extsep . $lext;
 	return($file);
 }
 
@@ -1332,11 +1332,11 @@ function normalize_dirname($dir, $index = 0)
 	// No indexing requested, just cut the name
 	if ($index == 0)
 	{
-		return mb_substr($dir, 0, 16);
+		return mb_trim(mb_substr($dir, 0, 16), true);
 	}
 
 	// Cut the name, make space for index (15 => place for "-")
-	return mb_substr($dir, 0, 15 - mb_strlen($index)) . "-" . $index;
+	return mb_trim(mb_substr($dir, 0, 15 - mb_strlen($index)), true) . "-" . $index;
 }
 
 // Replace or remove not allowed filename characters
@@ -1379,9 +1379,7 @@ function normalize_fixchars($file)
 		$file = mb_ereg_replace('[<>\\:\/"|\?\*]+', '.', $file);
 	}
 	
-	// Trim it
-	$file = mb_ereg_replace('^ *(.*?) *$', '\1', $file);
-	return $file;  // normalize_spacing() is also called later!
+	return mb_trim($file, true);  // normalize_spacing() is also called later!
 }
 
 // Truncate leading and trailling dots and spaces
@@ -1392,9 +1390,7 @@ function normalize_spacing($file)
 	$file = mb_ereg_replace('  *', ' ', $file);
 	$file = mb_ereg_replace('\.\.*', '.', $file);
 
-	// Trim dot and space
-	$file = mb_ereg_replace('^[\. ]*(.*?)[\. ]*$', '\1', $file);
-	return $file;
+	return mb_trim($file, true);
 }
 
 // Split filename and extension in a multibyte string safe manner
@@ -1444,6 +1440,19 @@ function get_namelimit($ext) {
 	else
 	{
 		return $non_std_length;
+	}
+}
+
+// Trim leading and ending space and optionally dot too, in an mb_* safe manner
+function mb_trim($text, $dot_too = false)
+{
+	if ($dot_too)
+	{
+		return mb_ereg_replace('^[\. ]*(.*?)[\. ]*$', '\1', $text);
+	}
+	else
+	{
+		return mb_ereg_replace('^ *(.*?) *$', '\1', $text);
 	}
 }
 
