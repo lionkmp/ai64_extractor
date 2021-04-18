@@ -1408,13 +1408,16 @@ function mb_split_extension($file, $allowcomma = false) {
 			$pos = ($pos > $pos_comma ? $pos : $pos_comma);
 		}
 	}
-	if ($pos === false)
+
+	// Accept only alphanumeric extensions (fixes a lot of extraction dirt)
+	if ($pos !== false && mb_ereg_match("^[a-zA-Z0-9]+$", mb_substr($file, $pos + 1)))
 	{
-		return array($file, "");
+		return array(mb_substr($file, 0, $pos), mb_substr($file, $pos + 1));
 	}
 	else
 	{
-		return array(mb_substr($file, 0, $pos), mb_substr($file, $pos + 1));
+		// No extension, name only
+		return array($file, "");
 	}
 }
 
