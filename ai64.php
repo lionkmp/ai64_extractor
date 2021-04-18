@@ -24,7 +24,7 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
   (c) 2004-2021 Ferenc Veres (Lion/Kempelen) (lion@c64.rulez.org)
 
   ai64 allows you to convert complete directory structures containing
-  c64 wares into IDE64 compatible copy of the whole strucure, before 
+  c64 programs into IDE64 compatible copy of the whole strucure, before
   copying to HDD for C64/IDE64 usage. Read the README file for more info.
  
   Usage: ai64.php [options] original_dir destination_dir
@@ -50,14 +50,20 @@ $helptext="  ai64 V".$version." - C64 archive files batch extractor
     sudo mount -t tmpfs none /mnt/rd
     sudo chown ".getenv('USER').":".getenv('USER')." /mnt/rd
     
-  Current configuration (hardcoded in this script):
-    D64LIST={d64list}
-    CBMCONVERT={cbmconvert}
-    ARRPREFIX={arrprefix}
-
-  Example:
-    Convert 'Games' folder for using with FuseCFS, keeps the process log:
+".
+  //Current configuration (hardcoded in this script):
+  //  D64LIST={d64list}
+  //  CBMCONVERT={cbmconvert}
+  //  ARRPREFIX={arrprefix}
+"  Examples:
+    Convert for using with FuseCFS with using tmpfs ramdisk and keep full log:
     ai64 -V -x , -u -t /mnt/rd Downloads/Games games-fuse 2>&1 | tee games.txt
+
+    Convert for using with Emulators:
+    ai64 -v -w Downloads/Games games-emu
+
+    Convert for using with SD2IEC (in XE+ mode):
+    ai64 -v -w -l 12 -n 100 Downloads/Games games-sd2iec
 ";
 
 // Set this to empty string if you don't have d64list,c1541 or compatible

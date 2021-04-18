@@ -145,15 +145,23 @@ that user!
 
 Examples
 
-ai64.php -x , -v -w c64/Demos c64stuff
+ai64 -V -x , -u -t /mnt/rd Downloads/Games games-fuse 2>&1 | tee games.txt
 
-  Converts with comma as extension separator, windows compatible file names.
-  Useful when copying to HD using FuseCFS (https://singularcrew.hu/idedos/).
+    Converts for copying to HDD with FuseCFS (https://singularcrew.hu/idedos/)
+    Uses comma as extension separator, unicode for PETSCII file names,
+    tmpfs ramdisk and keeps full log. Creates Linux friendly file names.
 
-ai64.php downloadedwares coolwares
+ai64 -v -w Downloads/Games games-emu
 
-  Converts with dot as separator. Linux file naming conventions.
-  Useful when burning a CD for use with IDE64.
+    Converts for using with Emulators, Windows friendly file names.
+    Also usable on ISO9660 CD/DVD disks for use with IDE64.
+
+ai64 -v -w -l 12 -n 100 Downloads/Games games-sd2iec
+
+    Converts for using with SD2IEC. Requires XE+ mode, which allows 16 chars
+    for standard file types. Use -L 12 to further limit standard names too
+    when using the default XE- mode. Puts 100 files in dirs instead of 300
+    for faster operation. Creates Windows friendly names for FAT SD cards.
 
 TIPS
 
