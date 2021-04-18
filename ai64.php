@@ -1379,7 +1379,7 @@ function normalize_fixchars($file)
 		$file = mb_ereg_replace('[<>\\:\/"|\?\*]+', '.', $file);
 	}
 	
-	return mb_trim($file, true);  // normalize_spacing() is also called later!
+	return mb_trim($file);  // must not trim dot, to be able to find extension on noname files ????.prg
 }
 
 // Truncate leading and trailling dots and spaces
