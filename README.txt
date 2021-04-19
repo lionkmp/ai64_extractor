@@ -132,6 +132,8 @@ ai64.php [options] original_dir destination_dir
     -v              Verbose, list successfully processed files
     -V              Super-verbose, also list archives while processing them
     -w              Force windows compatible file naming (remove more chars)
+    -l 16           Limit non-standard files' name length (default 16, w/o ext)
+    -L 16           Limit standard files' name length (default 16) (PRG, SEQ..)
     -u              Enable unicode chars like ↑ | (remove otherwise)
     -t path         Temp dir for extractions (default '/tmp/[USER].ai64/')
     -e err_handling Error handling, either 'ignore' (default), 'ask' or 'halt'.
